@@ -5,6 +5,7 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.net.Uri
+import android.media.MediaPlayer
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import androidx.security.crypto.MasterKey.KeyScheme
@@ -275,24 +276,152 @@ private fun lessonFor(topic: String): String = when (topic) {
 
 @Composable
 private fun LibraryScreen(modifier: Modifier = Modifier) {
-    var selectedFile by remember { mutableStateOf<String?>(null) }
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            selectedFile = uri.lastPathSegment ?: uri.toString()
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE) }
+    var tracks by remember {
+        val saved = prefs.getString("audio_library", null)
+        mutableStateOf(
+            if (saved.isNullOrBlank()) emptyList()
+            else runCatching {
+                val json = JSONArray(saved)
+                List(json.length()) { index -> json.getString(index) }
+            }.getOrDefault(emptyList())
+        )
+    }
+    var currentUri by remember { mutableStateOf<String?>(null) }
+    var currentTitle by remember { mutableStateOf<String?>(null) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    var player by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    fun saveTracks(updated: List<String>) {
+        tracks = updated
+        val json = JSONArray()
+        updated.forEach { json.put(it) }
+        prefs.edit().putString("audio_library", json.toString()).apply()
+    }
+
+    fun stopPlayback() {
+        runCatching { player?.stop() }
+        runCatching { player?.release() }
+        player = null
+        currentUri = null
+        currentTitle = null
+        isPlaying = false
+        isLoading = false
+    }
+
+    fun playTrack(uriString: String, title: String) {
+        stopPlayback()
+        currentUri = uriString
+        currentTitle = title
+        isLoading = true
+        runCatching {
+            MediaPlayer().also { mp ->
+                player = mp
+                mp.setDataSource(context, Uri.parse(uriString))
+                mp.setOnPreparedListener {
+                    isLoading = false
+                    isPlaying = true
+                    it.start()
+                }
+                mp.setOnCompletionListener {
+                    isPlaying = false
+                    isLoading = false
+                }
+                mp.setOnErrorListener { _, _, _ ->
+                    isLoading = false
+                    isPlaying = false
+                    stopPlayback()
+                    true
+                }
+                mp.prepareAsync()
+            }
+        }.onFailure {
+            stopPlayback()
         }
     }
-    Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Biblioteca", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Abre documentos y archivos desde tu teléfono para consultarlos durante tu aprendizaje.", color = Muted)
-        Button(onClick = { filePicker.launch(arrayOf("*/*")) }) {
-            Icon(Icons.Default.AttachFile, null)
-            Text("  Abrir archivo del teléfono")
+
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val value = uri.toString()
+            if (value !in tracks) saveTracks(tracks + value)
         }
-        selectedFile?.let { Text("Archivo seleccionado: $it", color = Accent, fontSize = 12.sp) }
-        Surface(color = Panel, shape = RoundedCornerShape(16.dp)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Bookmarks, null, tint = Accent)
-                Text("Material de aprendizaje", Modifier.padding(start = 12.dp))
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { runCatching { player?.release() }; player = null }
+    }
+
+    Column(modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Biblioteca musical", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Agrega canciones de tu teléfono. La selección se conserva para volver a reproducirlas.", color = Muted)
+        Button(onClick = { audioPicker.launch(arrayOf("audio/*")) }, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.LibraryMusic, null)
+            Text("  Agregar música del teléfono")
+        }
+        if (tracks.isEmpty()) {
+            Surface(color = Panel, shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.MusicNote, null, tint = Accent, modifier = Modifier.size(36.dp))
+                    Text("Tu biblioteca está vacía", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                    Text("Agrega archivos MP3, WAV, M4A u otros formatos compatibles con Android.", color = Muted, fontSize = 12.sp)
+                }
+            }
+        } else {
+            Text("${tracks.size} canción(es)", color = Accent, fontWeight = FontWeight.SemiBold)
+            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(tracks) { uriString ->
+                    val uri = Uri.parse(uriString)
+                    val title = remember(uriString) {
+                        runCatching {
+                            context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                if (cursor.moveToFirst()) cursor.getString(0) else null
+                            }
+                        }.getOrNull() ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                    }
+                    Surface(color = Panel, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.MusicNote, null, tint = Accent)
+                            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                                Text(title, fontWeight = FontWeight.Medium, maxLines = 1)
+                                Text(if (currentUri == uriString && isLoading) "Cargando…" else if (currentUri == uriString && isPlaying) "Reproduciendo" else "En biblioteca", color = Muted, fontSize = 11.sp)
+                            }
+                            IconButton(onClick = {
+                                if (currentUri == uriString && isPlaying) {
+                                    runCatching { player?.pause() }
+                                    isPlaying = false
+                                } else if (currentUri == uriString && !isPlaying && !isLoading && player != null) {
+                                    runCatching { player?.start() }
+                                    isPlaying = true
+                                } else {
+                                    playTrack(uriString, title)
+                                }
+                            }) {
+                                Icon(if (currentUri == uriString && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, if (isPlaying) "Pausar" else "Reproducir", tint = Accent)
+                            }
+                            IconButton(onClick = {
+                                if (currentUri == uriString) stopPlayback()
+                                saveTracks(tracks.filterNot { it == uriString })
+                            }) {
+                                Icon(Icons.Default.DeleteOutline, "Quitar canción", tint = Muted)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (currentTitle != null) {
+            Surface(color = Color(0xFF174C43), shape = RoundedCornerShape(14.dp)) {
+                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.GraphicEq, null, tint = Accent)
+                    Text(currentTitle.orEmpty(), Modifier.weight(1f).padding(start = 8.dp), maxLines = 1)
+                    if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Accent, strokeWidth = 2.dp)
+                    TextButton(onClick = { stopPlayback() }) { Text("Detener") }
+                }
             }
         }
     }
