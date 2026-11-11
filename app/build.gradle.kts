@@ -10,11 +10,11 @@ android {
 
     defaultConfig {
         // Unique application ID so this build installs alongside the previous APK.
-        applicationId = "com.djsebas.chatdjsvip.v2"
+        applicationId = "com.djsebas.chatdjsvip.v3"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "3.0.0"
     }
     buildFeatures { compose = true }
     compileOptions {
