@@ -1,6 +1,7 @@
 package com.djsebas.chatdjsvip
 
 import android.os.Bundle
+import org.json.JSONArray
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 
 private val Ink = Color(0xFF101820)
 private val Panel = Color(0xFF18232D)
@@ -37,9 +39,25 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDjsVipApp() {
+    val context = LocalContext.current
+    val preferences = remember(context) { context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE) }
     var section by remember { mutableStateOf("Chat") }
     var prompt by remember { mutableStateOf("") }
-    var messages by remember { mutableStateOf(listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.")) }
+    var messages by remember {
+        val stored = preferences.getString("messages", null)
+        mutableStateOf(
+            if (stored.isNullOrBlank()) listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.")
+            else runCatching {
+                val json = JSONArray(stored)
+                List(json.length()) { index -> json.getString(index) }
+            }.getOrElse { listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.") }
+        )
+    }
+    LaunchedEffect(messages) {
+        val json = JSONArray()
+        messages.forEach { json.put(it) }
+        preferences.edit().putString("messages", json.toString()).apply()
+    }
     MaterialTheme(colorScheme = darkColorScheme(
         primary = Accent, background = Ink, surface = Panel,
         onBackground = Color.White, onSurface = Color.White
