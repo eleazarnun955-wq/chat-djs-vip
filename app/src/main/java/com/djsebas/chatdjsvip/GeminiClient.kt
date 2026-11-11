@@ -28,7 +28,7 @@ object GeminiClient {
                 val apiKey = prefs.getString("gemini_api_key", "").orEmpty()
                 if (apiKey.isBlank()) {
                     return@runCatching djKnowledgeReply(question) +
-                        "\\n\\nPara activar respuestas de IA más amplias, configura tu clave gratuita en Ajustes. Sin clave sigo usando la guía local."
+                        "\n\nPara activar respuestas de IA más amplias, configura tu clave gratuita en Ajustes. Sin clave sigo usando la guía local."
                 }
                 val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
                 val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -59,7 +59,7 @@ object GeminiClient {
                 json.getJSONArray("candidates").getJSONObject(0)
                     .getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text")
             }.getOrElse { error ->
-                "No pude conectar con la IA gratuita: ${error.message ?: "error de conexión"}.\\n\\nRespuesta local:\\n" + djKnowledgeReply(question)
+                "No pude conectar con la IA gratuita: ${error.message ?: "error de conexión"}.\n\nRespuesta local:\n" + djKnowledgeReply(question)
             }
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }.start()
