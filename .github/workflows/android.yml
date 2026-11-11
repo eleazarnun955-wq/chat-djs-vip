@@ -30,14 +30,14 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CHAT-DJS-VIP-v3-debug-apk
+          name: CHAT-DJS-VIP-3.2.0-INDEPENDIENTE
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish direct APK download
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: chat-djs-vip-v3-build-${{ github.run_number }}
-          name: CHAT DJ'S VIP v3 - Build ${{ github.run_number }}
-          body: APK independiente de CHAT DJ'S VIP v3, con firma estable para futuras actualizaciones.
+          tag_name: chat-djs-vip-3.2.0-independent-build-${{ github.run_number }}
+          name: CHAT DJ'S VIP 3.2.0 - Aplicación independiente
+          body: APK independiente de la app original. Se instala en paralelo y no la reemplaza.
           files: app/build/outputs/apk/debug/app-debug.apk
           make_latest: true
