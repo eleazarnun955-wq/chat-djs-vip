@@ -96,6 +96,79 @@ Dime marca y modelo para adaptar la guía."""
 4. Prueba loops de 4 u 8 compases y escucha el cierre.
 5. Guarda los puntos y vuelve a cargar la pista para confirmar que se conservaron.
 Los límites y nombres varían según software y equipo."""
+        listOf("no suena", "sin sonido", "no escucho", "no sale audio").any { it in q } ->
+            """DIAGNÓSTICO: NO HAY SONIDO
+1. Baja Master y volumen de bocinas antes de revisar.
+2. Comprueba que las bocinas estén conectadas a MASTER OUT.
+3. En Audio Setup selecciona la interfaz/controladora correcta.
+4. Verifica la asignación de salidas Master (por ejemplo 1/2, según el equipo).
+5. Si solo falla la preescucha, revisa PHONES, CUE y Output Routing.
+6. Prueba una pista local y sube el volumen gradualmente.
+Dime software, modelo de equipo y qué medidores sí se mueven."""
+        listOf("latencia", "retardo", "cortes", "chasquido", "audio entrecortado").any { it in q } ->
+            """LATENCIA Y CORTES
+1. Cierra programas que consuman CPU.
+2. Usa el driver oficial del fabricante; en Windows, ASIO cuando esté disponible.
+3. Aumenta el búfer poco a poco hasta eliminar los cortes.
+4. Conecta la controladora directamente al ordenador y prueba otro cable/puerto.
+5. Evita el ahorro de energía USB durante la sesión.
+Dime sistema operativo, software, controlador y búfer actual."""
+        listOf("usb", "memoria", "pendrive", "exportar canciones").any { it in q } ->
+            """PREPARAR USB PARA DJ
+1. Haz copia de seguridad: preparar/formatear una memoria puede borrar sus datos.
+2. Confirma formato y capacidad admitidos por tu reproductor.
+3. En rekordbox analiza pistas, revisa beatgrid, cues y playlists.
+4. Exporta desde la función oficial del programa compatible.
+5. Expulsa la memoria de forma segura y pruébala en el equipo del evento.
+Dime modelo de CDJ/XDJ/Denon y software para darte pasos precisos."""
+        listOf("grabar", "grabación", "grabacion", "record").any { it in q } ->
+            """GRABAR UNA SESIÓN
+1. Comprueba si tu software tiene REC o si la mezcladora ofrece salida de grabación.
+2. Selecciona la fuente Master/Record correcta.
+3. Ajusta niveles para que no lleguen al rojo.
+4. Haz una prueba breve y escucha el archivo completo.
+5. Guarda WAV para edición o MP3 para un archivo más ligero.
+Dime software y modelo de mezcladora/controladora para indicarte dónde está cada opción."""
+        listOf("serato").any { it in q } ->
+            """SERATO DJ: CONFIGURACIÓN
+1. Instala Serato y el driver oficial si tu controlador lo requiere.
+2. Conecta el equipo y confirma que Serato lo reconozca.
+3. En Setup revisa Audio y asignación Master/Headphones.
+4. Importa música, analiza BPM y corrige beatgrid si hace falta.
+5. Crea crates, coloca Hot Cues y prueba CUE en audífonos.
+Dime versión de Serato y modelo exacto para adaptar los pasos."""
+        listOf("rekordbox").any { it in q } ->
+            """REKORDBOX: PREPARACIÓN
+1. Importa música a Collection y analiza BPM/tonalidad.
+2. Corrige beatgrid cuando no coincida con los golpes.
+3. Organiza playlists y coloca Hot Cues/Memory Cues.
+4. Para USB usa Export y espera a que termine la sincronización.
+5. Expulsa de forma segura y prueba el USB en tu CDJ/XDJ.
+Dime versión de rekordbox y modelo del reproductor."""
+        listOf("virtualdj").any { it in q } ->
+            """VIRTUALDJ: CONFIGURACIÓN
+1. En Settings revisa Audio y selecciona el dispositivo correcto.
+2. En Controllers confirma que aparezca tu controladora.
+3. Asigna Master y Headphones según las salidas físicas disponibles.
+4. Importa música y analiza BPM/Key.
+5. Practica CUE, loops, Hot Cues y EQ; guarda copia antes de cambiar mapeos.
+Dime versión y modelo de controladora."""
+        listOf("traktor").any { it in q } ->
+            """TRAKTOR: CONFIGURACIÓN
+1. En Preferences > Audio Setup selecciona la interfaz.
+2. Ajusta la latencia sin provocar cortes.
+3. En Output Routing asigna Master y Monitor.
+4. Importa música a Collection y revisa beatgrids.
+5. Practica Hotcues, loops y FX; respalda mapeos MIDI antes de editarlos.
+Dime versión de Traktor y modelo de interfaz/controladora."""
+        listOf("djay").any { it in q } ->
+            """DJAY: PRIMEROS PASOS
+1. Comprueba la compatibilidad del controlador con tu versión y dispositivo.
+2. Conéctalo y concede los permisos solicitados.
+3. Configura Master y preescucha si tu dispositivo lo permite.
+4. Carga pistas y revisa BPM, forma de onda y Cue.
+5. Practica loops, EQ y transiciones. Neural Mix depende de versión y dispositivo.
+Dime si usas Android, iPhone, iPad, Mac o Windows y el controlador."""
         else ->
             """Puedo ayudarte con mezcla, beatmatching, BPM, ecualización, ganancia, preescucha, loops, hot cues, software DJ, controladoras, CDJ, mezcladoras y tornamesas.
 Escribe tu duda y agrega marca/modelo del equipo y versión del programa cuando aplique.
