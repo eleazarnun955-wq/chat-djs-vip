@@ -96,11 +96,12 @@ fun ChatDjsVipApp() {
             }
         }) { padding ->
             when (section) {
-                "Chat" -> ChatScreen(messages, prompt, { prompt = it }, { text ->
-                    if (text.isNotBlank()) {
-                        messages = messages + "Tú: $text" + "VIP: Consultando..."
+                "Chat" -> ChatScreen(messages, prompt, { prompt = it }, { text, imageUri ->
+                    if (text.isNotBlank() || imageUri != null) {
+                        val shownText = text.ifBlank { "Analiza esta imagen y explícame qué observas." }
+                        messages = messages + "Tú: $shownText" + "VIP: Consultando..."
                         prompt = ""
-                        GeminiClient.reply(context, text, messages) { answer ->
+                        GeminiClient.reply(context, shownText, messages, imageUri) { answer ->
                             (context as? android.app.Activity)?.runOnUiThread {
                                 messages = messages.dropLast(1) + "VIP: $answer"
                             }
@@ -137,8 +138,17 @@ fun ChatDjsVipApp() {
 }
 
 @Composable
-private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String, Uri?) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            selectedImage = uri
+        }
+    }
     var speechEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     var speechReady by remember { mutableStateOf(false) }
     DisposableEffect(context) {
@@ -186,15 +196,25 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 }
             }
         }
+        if (selectedImage != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                Icon(Icons.Default.Image, null, tint = Accent)
+                Text("Imagen adjunta", color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                TextButton(onClick = { selectedImage = null }) { Text("Quitar") }
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().background(Panel, CircleShape).padding(6.dp)) {
             TextField(value = prompt, onValueChange = onPrompt, modifier = Modifier.weight(1f), placeholder = { Text("Pregunta lo que quieras…", color = Muted) }, colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                 focusedTextColor = Color.White, unfocusedTextColor = Color.White
             ))
+            IconButton(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
+                Icon(Icons.Default.Image, "Adjuntar imagen", tint = Accent)
+            }
             IconButton(onClick = { permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) }) {
                 Icon(Icons.Default.Mic, "Hablar", tint = Accent)
             }
-            IconButton(onClick = { send(prompt) }) { Icon(Icons.Default.Send, "Enviar", tint = Accent) }
+            IconButton(onClick = { send(prompt, selectedImage); selectedImage = null }) { Icon(Icons.Default.Send, "Enviar", tint = Accent) }
         }
     }
 }
