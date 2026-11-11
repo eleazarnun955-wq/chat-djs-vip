@@ -4,6 +4,13 @@ import android.os.Bundle
 import android.content.Intent
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
+import android.net.Uri
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import androidx.security.crypto.MasterKey.KeyScheme
+import androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme
+import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import java.util.Locale
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -48,6 +55,9 @@ fun ChatDjsVipApp() {
     val context = LocalContext.current
     val preferences = remember(context) { context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE) }
     var section by remember { mutableStateOf("Chat") }
+    var showAiSettings by remember { mutableStateOf(false) }
+    var apiKeyInput by remember { mutableStateOf("") }
+    val securePreferences = remember(context) { runCatching { val masterKey = MasterKey.Builder(context).setKeyScheme(KeyScheme.AES256_GCM).build(); EncryptedSharedPreferences.create(context, "chat_djs_vip_secure", masterKey, PrefKeyEncryptionScheme.AES256_SIV, PrefValueEncryptionScheme.AES256_GCM) }.getOrNull() }
     var prompt by remember { mutableStateOf("") }
     var messages by remember {
         val stored = preferences.getString("messages", null)
@@ -76,7 +86,7 @@ fun ChatDjsVipApp() {
                 }
             }, navigationIcon = {
                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Accent, modifier = Modifier.padding(start = 16.dp).size(28.dp))
-            }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Panel))
+            }, actions = { IconButton(onClick = { apiKeyInput = securePreferences?.getString("gemini_api_key", "").orEmpty(); showAiSettings = true }) { Icon(Icons.Default.Settings, contentDescription = "Configurar IA", tint = Accent) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Panel))
         }, bottomBar = {
             NavigationBar(containerColor = Panel) {
                 NavigationBarItem(selected = section == "Chat", onClick = { section = "Chat" }, icon = { Icon(Icons.Default.Chat, null) }, label = { Text("Chat") })
@@ -87,13 +97,40 @@ fun ChatDjsVipApp() {
             when (section) {
                 "Chat" -> ChatScreen(messages, prompt, { prompt = it }, { text ->
                     if (text.isNotBlank()) {
-                        messages = messages + "Tú: $text" + "VIP: " + assistantReply(text)
+                        messages = messages + "Tú: $text" + "VIP: Consultando..."
                         prompt = ""
+                        GeminiClient.reply(context, text) { answer ->
+                            (context as? android.app.Activity)?.runOnUiThread {
+                                messages = messages.dropLast(1) + "VIP: $answer"
+                            }
+                        }
                     }
                 }, Modifier.padding(padding))
                 "Escuela DJ" -> SchoolScreen(Modifier.padding(padding))
                 else -> LibraryScreen(Modifier.padding(padding))
             }
+        }
+        if (showAiSettings) {
+            AlertDialog(
+                onDismissRequest = { showAiSettings = false },
+                title = { Text("IA gratuita (Gemini)") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("La app puede usar el nivel gratuito de Google AI Studio. Tiene límites de uso; no es ilimitado. No agregues un método de pago ni actives facturación si quieres mantener el costo en $0.")
+                        OutlinedTextField(value = apiKeyInput, onValueChange = { apiKeyInput = it }, label = { Text("Clave API de Google AI Studio") }, visualTransformation = PasswordVisualTransformation(), singleLine = true)
+                        TextButton(onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/api-keys"))) } }) { Text("Obtener clave gratuita") }
+                        Text("Aviso: en el nivel gratuito Google puede usar el contenido enviado para mejorar sus productos. No compartas datos privados.", color = Muted, fontSize = 12.sp)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        securePreferences?.edit()?.putString("gemini_api_key", apiKeyInput.trim())?.apply()
+                        showAiSettings = false
+                    }) { Text("Guardar") }
+                },
+                dismissButton = { TextButton(onClick = { showAiSettings = false }) { Text("Cancelar") } },
+                containerColor = Panel
+            )
         }
     }
 }
