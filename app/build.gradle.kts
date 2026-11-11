@@ -9,10 +9,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.djsebas.chatdjsvip.v3"
+        // Paquete independiente: se instala junto a la versión original sin reemplazarla.
+        applicationId = "com.djsebas.chatdjsvip.v320"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
+        versionCode = 1
         versionName = "3.2.0"
     }
 
