@@ -25,6 +25,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CHAT-DJS-VIP-debug-apk
+          name: CHAT-DJS-VIP-v2-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
