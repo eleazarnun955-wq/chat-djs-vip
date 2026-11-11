@@ -326,6 +326,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     it.start()
                 }
                 mp.setOnCompletionListener {
+                    runCatching { it.seekTo(0) }
                     isPlaying = false
                     isLoading = false
                 }
