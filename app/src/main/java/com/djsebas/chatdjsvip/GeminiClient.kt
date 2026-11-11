@@ -1,6 +1,8 @@
 package com.djsebas.chatdjsvip
 
 import android.content.Context
+import android.net.Uri
+import android.util.Base64
 import android.os.Handler
 import android.os.Looper
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -20,6 +22,7 @@ object GeminiClient {
         context: Context,
         question: String,
         previousMessages: List<String>,
+        imageUri: Uri? = null,
         onResult: (String) -> Unit
     ) {
         Thread {
@@ -33,6 +36,7 @@ object GeminiClient {
                 val apiKey = prefs.getString("gemini_api_key", "").orEmpty()
                 if (apiKey.isBlank()) {
                     return@runCatching djKnowledgeReply(question) +
+                        (if (imageUri != null) "\n\nPara analizar imágenes necesitas configurar la IA de Gemini en Ajustes." else "") +
                         "\n\nPara activar respuestas de IA más amplias, configura tu clave gratuita en Ajustes. Sin clave sigo usando la guía local."
                 }
 
@@ -64,11 +68,25 @@ object GeminiClient {
                         index += 1
                     }
                 }
-                contents.put(
-                    JSONObject().put("role", "user").put(
-                        "parts", JSONArray().put(JSONObject().put("text", question))
+                val latestParts = JSONArray()
+                if (imageUri != null) {
+                    val imageBytes = context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
+                        ?: throw IllegalStateException("No pude leer la imagen seleccionada.")
+                    if (imageBytes.size > 12 * 1024 * 1024) {
+                        throw IllegalStateException("La imagen es demasiado grande. Elige una imagen de menos de 12 MB.")
+                    }
+                    val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                    latestParts.put(
+                        JSONObject().put(
+                            "inline_data",
+                            JSONObject()
+                                .put("mime_type", mimeType)
+                                .put("data", Base64.encodeToString(imageBytes, Base64.NO_WRAP))
+                        )
                     )
-                )
+                }
+                latestParts.put(JSONObject().put("text", question))
+                contents.put(JSONObject().put("role", "user").put("parts", latestParts))
 
                 val systemInstruction = JSONObject().put(
                     "parts",
