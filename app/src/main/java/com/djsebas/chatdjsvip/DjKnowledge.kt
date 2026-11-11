@@ -71,14 +71,6 @@ Necesito marca/modelo de tornamesa y cápsula para indicar valores correctos."""
 4. Alinea inicios de frase, no solamente BPM.
 5. Haz el cambio de graves y niveles gradualmente.
 6. Escucha la mezcla completa y evita choques de voces o melodías."""
-        listOf("serato","rekordbox","virtualdj","traktor","djay").any { it in q } ->
-            """SOFTWARE DJ
-Puedo orientarte con Serato DJ, rekordbox, VirtualDJ, Traktor y djay.
-1. Indica el nombre y versión del programa.
-2. Dime el modelo de controladora o si trabajas solo con computadora.
-3. Describe qué quieres hacer o qué error aparece.
-4. Comparte el texto del error o una captura si puedes.
-Los menús cambian entre versiones y licencias; no inventaré botones que quizá no existan."""
         listOf("cdj","controladora","mezcladora","mixer","controlador").any { it in q } ->
             """CONTROLADORA, CDJ O MEZCLADORA
 1. Identifica modelo y compatibilidad con el software.
@@ -169,6 +161,14 @@ Dime versión de Traktor y modelo de interfaz/controladora."""
 4. Carga pistas y revisa BPM, forma de onda y Cue.
 5. Practica loops, EQ y transiciones. Neural Mix depende de versión y dispositivo.
 Dime si usas Android, iPhone, iPad, Mac o Windows y el controlador."""
+        listOf("serato","rekordbox","virtualdj","traktor","djay").any { it in q } ->
+            """SOFTWARE DJ
+Puedo orientarte con Serato DJ, rekordbox, VirtualDJ, Traktor y djay.
+1. Indica el nombre y versión del programa.
+2. Dime el modelo de controladora o si trabajas solo con computadora.
+3. Describe qué quieres hacer o qué error aparece.
+4. Comparte el texto del error o una captura si puedes.
+Los menús cambian entre versiones y licencias; no inventaré botones que quizá no existan."""
         else ->
             """Puedo ayudarte con mezcla, beatmatching, BPM, ecualización, ganancia, preescucha, loops, hot cues, software DJ, controladoras, CDJ, mezcladoras y tornamesas.
 Escribe tu duda y agrega marca/modelo del equipo y versión del programa cuando aplique.
