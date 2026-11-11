@@ -21,6 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -139,12 +140,21 @@ fun ChatDjsVipApp() {
 private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var speechEngine by remember { mutableStateOf<TextToSpeech?>(null) }
+    var speechReady by remember { mutableStateOf(false) }
     DisposableEffect(context) {
         val engine = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) speechEngine?.language = Locale("es", "MX")
+            speechReady = status == TextToSpeech.SUCCESS
         }
         speechEngine = engine
-        onDispose { engine.stop(); engine.shutdown(); speechEngine = null }
+        onDispose {
+            engine.stop()
+            engine.shutdown()
+            speechEngine = null
+            speechReady = false
+        }
+    }
+    LaunchedEffect(speechReady) {
+        if (speechReady) speechEngine?.language = Locale("es", "MX")
     }
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
@@ -160,8 +170,12 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             runCatching { speechLauncher.launch(intent) }
         }
     }
+    val chatListState = rememberLazyListState()
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) chatListState.animateScrollToItem(messages.lastIndex)
+    }
     Column(modifier.fillMaxSize().padding(14.dp)) {
-        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(state = chatListState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(messages) { msg ->
                 val user = msg.startsWith("Tú:")
                 Surface(color = if (user) Color(0xFF174C43) else Panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
