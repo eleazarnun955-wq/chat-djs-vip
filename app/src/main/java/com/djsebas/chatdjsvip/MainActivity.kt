@@ -3,6 +3,8 @@ package com.djsebas.chatdjsvip
 import android.os.Bundle
 import android.content.Intent
 import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
+import java.util.Locale
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import org.json.JSONArray
@@ -98,6 +100,15 @@ fun ChatDjsVipApp() {
 
 @Composable
 private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String) -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var speechEngine by remember { mutableStateOf<TextToSpeech?>(null) }
+    DisposableEffect(context) {
+        val engine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) engine.language = Locale("es", "MX")
+        }
+        speechEngine = engine
+        onDispose { engine.stop(); engine.shutdown(); speechEngine = null }
+    }
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
         if (!spoken.isNullOrBlank()) onPrompt(spoken)
@@ -117,7 +128,10 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             items(messages) { msg ->
                 val user = msg.startsWith("Tú:")
                 Surface(color = if (user) Color(0xFF174C43) else Panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                    Text(msg, Modifier.padding(14.dp), color = Color.White, fontSize = 15.sp)
+                    Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(msg, Modifier.weight(1f).padding(2.dp), color = Color.White, fontSize = 15.sp)
+                        if (msg.startsWith("VIP:")) IconButton(onClick = { speechEngine?.speak(msg.removePrefix("VIP:").trim(), TextToSpeech.QUEUE_FLUSH, null, "vip_reply") }) { Icon(Icons.Default.VolumeUp, "Escuchar respuesta", tint = Accent) }
+                    }
                 }
             }
         }
