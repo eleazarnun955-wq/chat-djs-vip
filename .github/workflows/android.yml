@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -22,9 +22,17 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Build debug APK
         run: gradle assembleDebug
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: CHAT-DJS-VIP-v2-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+      - name: Publish direct APK download
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: chat-djs-vip-v2-build-${{ github.run_number }}
+          name: CHAT DJ'S VIP v2 - Build ${{ github.run_number }}
+          body: APK de CHAT DJ'S VIP v2. Se publica como archivo APK individual para descarga directa.
+          files: app/build/outputs/apk/debug/app-debug.apk
+          make_latest: true
