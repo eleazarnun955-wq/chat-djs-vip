@@ -193,9 +193,6 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var selectedFile by remember { mutableStateOf<String?>(null) }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            runCatching {
-                androidx.compose.ui.platform.LocalContext.current
-            }
             selectedFile = uri.lastPathSegment ?: uri.toString()
         }
     }
