@@ -190,9 +190,23 @@ private fun lessonFor(topic: String): String = when (topic) {
 
 @Composable
 private fun LibraryScreen(modifier: Modifier = Modifier) {
+    var selectedFile by remember { mutableStateOf<String?>(null) }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching {
+                androidx.compose.ui.platform.LocalContext.current
+            }
+            selectedFile = uri.lastPathSegment ?: uri.toString()
+        }
+    }
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Biblioteca", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Aquí se organizarán tus conversaciones, guías y archivos de aprendizaje DJ.", color = Muted)
+        Text("Abre documentos y archivos desde tu teléfono para consultarlos durante tu aprendizaje.", color = Muted)
+        Button(onClick = { filePicker.launch(arrayOf("*/*")) }) {
+            Icon(Icons.Default.AttachFile, null)
+            Text("  Abrir archivo del teléfono")
+        }
+        selectedFile?.let { Text("Archivo seleccionado: $it", color = Accent, fontSize = 12.sp) }
         Surface(color = Panel, shape = RoundedCornerShape(16.dp)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Bookmarks, null, tint = Accent)
