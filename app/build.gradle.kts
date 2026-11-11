@@ -9,13 +9,29 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        // Unique application ID so this build installs alongside the previous APK.
         applicationId = "com.djsebas.chatdjsvip.v3"
         minSdk = 26
         targetSdk = 35
         versionCode = 5
         versionName = "3.2.0"
     }
+
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+            storeType = "PKCS12"
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
