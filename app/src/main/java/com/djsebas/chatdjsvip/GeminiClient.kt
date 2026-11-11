@@ -112,27 +112,36 @@ Adapta los pasos a la marca, modelo, versión y sistema operativo que indique el
                 val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
                 var code = 0
                 var responseText = ""
-                // Reintenta solo errores temporales de capacidad; nunca insiste ante cuota agotada.
+                var lastNetworkError: java.io.IOException? = null
+                // Reintenta fallas transitorias de red/servidor; no insiste si la cuota gratuita se agotó.
                 for (attempt in 0..2) {
-                    val connection = (url.openConnection() as HttpURLConnection).apply {
-                        requestMethod = "POST"
-                        connectTimeout = 20000
-                        readTimeout = 90000
-                        doOutput = true
-                        setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("x-goog-api-key", apiKey)
-                    }
+                    var connection: HttpURLConnection? = null
                     try {
+                        connection = (url.openConnection() as HttpURLConnection).apply {
+                            requestMethod = "POST"
+                            connectTimeout = 20000
+                            readTimeout = 90000
+                            doOutput = true
+                            setRequestProperty("Content-Type", "application/json")
+                            setRequestProperty("x-goog-api-key", apiKey)
+                        }
                         connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
                         code = connection.responseCode
                         val stream = if (code in 200..299) connection.inputStream else connection.errorStream
                         responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                        lastNetworkError = null
+                    } catch (error: java.io.IOException) {
+                        lastNetworkError = error
+                        if (attempt == 2) throw error
+                        Thread.sleep(1000L * (attempt + 1))
+                        continue
                     } finally {
-                        connection.disconnect()
+                        connection?.disconnect()
                     }
-                    if (code != 503 || attempt == 2) break
+                    if (code !in listOf(502, 503, 504) || attempt == 2) break
                     Thread.sleep(1000L * (attempt + 1))
                 }
+                if (lastNetworkError != null) throw lastNetworkError
 
                 if (code !in 200..299) {
                     val providerMessage = runCatching {
