@@ -119,12 +119,13 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
         "Tornamesas y vinilos" to "Conexión PHONO/LINE, cápsula, aguja, contrapeso, antiskating, pitch y scratch.",
         "Controladoras, CDJ y mezcladoras" to "Ganancia, EQ, filtros, canales, crossfader, monitores y conexiones."
     )
+    var selectedTopic by remember { mutableStateOf<String?>(null) }
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Text("ESCUELA DJ", fontSize = 23.sp, fontWeight = FontWeight.Bold)
         Text("Aprende desde principiante hasta nivel profesional.", color = Muted, modifier = Modifier.padding(top = 4.dp, bottom = 14.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(topics) { (name, desc) ->
-                Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { selectedTopic = name }) {
                     Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.MusicNote, null, tint = Accent, modifier = Modifier.size(28.dp))
                         Column(Modifier.padding(start = 12.dp)) {
@@ -135,7 +136,28 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+        selectedTopic?.let { topic ->
+            AlertDialog(
+                onDismissRequest = { selectedTopic = null },
+                title = { Text(topic) },
+                text = { Text(lessonFor(topic), fontSize = 14.sp) },
+                confirmButton = { TextButton(onClick = { selectedTopic = null }) { Text("Entendido") } },
+                containerColor = Panel,
+                titleContentColor = Color.White,
+                textContentColor = Color.White
+            )
+        }
     }
+}
+
+private fun lessonFor(topic: String): String = when (topic) {
+    "Serato DJ" -> "RUTA DE APRENDIZAJE\\n1. Instala la versión compatible y conecta tu controlador apagado.\\n2. Abre Serato y revisa Setup: audio, dispositivo y firmware.\\n3. Importa música desde Files y analiza BPM y tonalidad.\\n4. Organiza crates y revisa que cada pista tenga beatgrid correcto.\\n5. Marca Hot Cues y prueba loops de 4 u 8 compases.\\n6. Preescucha con CUE, iguala tempo y mezcla usando ganancia y EQ.\\nDime tu versión y modelo de controlador para adaptar los nombres de botones."
+    "rekordbox" -> "RUTA DE APRENDIZAJE\\n1. Elige el modo Export para preparar USB o Performance para mezclar.\\n2. Importa y analiza las pistas.\\n3. Corrige beatgrids si el análisis detectó mal los golpes.\\n4. Configura Memory Cues y Hot Cues.\\n5. Exporta la colección a una memoria USB compatible y expúlsala de forma segura.\\n6. Prueba el USB en tu CDJ antes de un evento. Las opciones varían según versión y equipo."
+    "VirtualDJ" -> "RUTA DE APRENDIZAJE\\n1. Configura el controlador en Settings > Controllers.\\n2. Selecciona la tarjeta de sonido y asigna salidas Master y Headphones.\\n3. Carga pistas en los decks y analiza BPM/Key.\\n4. Usa auriculares para preescuchar el deck entrante.\\n5. Practica loops, hot cues y transiciones con EQ.\\n6. Guarda cambios de mapeo solo después de probarlos."
+    "Traktor" -> "RUTA DE APRENDIZAJE\\n1. Configura Audio Device y latencia en Preferences > Audio Setup.\\n2. Asigna salidas Master y Monitor.\\n3. Importa música a la Collection y analiza beatgrids.\\n4. Ajusta Sync solo después de entender fase y tempo.\\n5. Practica Hotcues, loops y FX con niveles moderados.\\n6. Comprueba el mapeo MIDI y guarda una copia antes de modificarlo."
+    "djay" -> "RUTA DE APRENDIZAJE\\n1. Conecta un controlador compatible y concede permisos de audio.\\n2. Selecciona la salida principal y la preescucha si tu dispositivo lo permite.\\n3. Carga pistas, revisa BPM y forma de onda.\\n4. Practica cue points, loops y ecualización.\\n5. Explora Neural Mix si tu versión y dispositivo lo admiten.\\n6. Verifica compatibilidad exacta del controlador antes de comprarlo."
+    "Tornamesas y vinilos" -> "CONFIGURACIÓN SEGURA\\n1. Coloca la tornamesa en una superficie firme y nivelada.\\n2. Instala cápsula y aguja siguiendo el fabricante.\\n3. Ajusta contrapeso y fuerza de apoyo al rango recomendado por la cápsula; no adivines el valor.\\n4. Ajusta antiskating según el manual.\\n5. Conecta PHONO a entrada PHONO con tierra; usa LINE solo si el preamplificador está activado y la mezcladora recibe LINE.\\n6. Limpia el vinilo y practica cueing sin forzar la aguja."
+    else -> "CONCEPTOS ESENCIALES\\n1. Identifica entradas y salidas antes de conectar.\\n2. Conecta Master a bocinas activas o amplificador adecuado.\\n3. Usa CUE para escuchar en audífonos sin enviar esa señal al público.\\n4. Ajusta ganancia sin llevar los medidores a rojo.\\n5. Ecualiza con cambios graduales y evita saturación.\\n6. Baja volúmenes antes de conectar o desconectar equipos.\\nDime marca y modelo para darte un diagrama de conexión específico."
 }
 
 @Composable
