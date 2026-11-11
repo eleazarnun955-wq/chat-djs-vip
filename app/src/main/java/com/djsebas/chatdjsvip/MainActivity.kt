@@ -113,18 +113,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
     }
 }
 
-private fun assistantReply(input: String): String {
-    val q = input.lowercase()
-    return when {
-        listOf("beatmatch", "mezclar", "mezcla", "bpm").any { it in q } ->
-            "Para empezar a mezclar: 1) iguala los BPM de ambas canciones; 2) escucha la canción entrante con preescucha en audífonos; 3) localiza el primer golpe del compás; 4) ajusta el jog o pitch poco a poco; 5) introduce el canal con el ecualizador y evita subir dos graves al máximo. Dime qué equipo usas y te guío con sus controles exactos."
-        listOf("serato", "rekordbox", "virtualdj", "traktor", "djay").any { it in q } ->
-            "Puedo guiarte paso a paso con ese programa. Dime la versión y el modelo de tu controladora para no indicarte botones que no correspondan a tu equipo."
-        listOf("tornamesa", "vinilo", "aguja", "scratch").any { it in q } ->
-            "En tornamesa física primero revisa nivelación, fuerza de apoyo y antiskating según el manual de tu cápsula. Conecta la salida PHONO a una entrada PHONO (o usa LINE si la tornamesa tiene preamplificador activado). ¿Qué modelo tienes?"
-        else -> "Puedo ayudarte con conceptos y formación DJ básica. Para responder con precisión, dime qué aplicación, versión o modelo de equipo utilizas. Esta primera versión funciona sin conexión a un servicio de IA; la conexión a modelos locales y proveedores en nube se integrará y probará por separado."
-    }
-}
+private fun assistantReply(input: String): String = djKnowledgeReply(input)
 
 @Composable
 private fun SchoolScreen(modifier: Modifier = Modifier) {
