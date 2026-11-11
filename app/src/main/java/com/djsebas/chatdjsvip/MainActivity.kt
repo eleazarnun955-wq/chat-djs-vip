@@ -100,7 +100,7 @@ fun ChatDjsVipApp() {
                     if (text.isNotBlank()) {
                         messages = messages + "Tú: $text" + "VIP: Consultando..."
                         prompt = ""
-                        GeminiClient.reply(context, text) { answer ->
+                        GeminiClient.reply(context, text, messages) { answer ->
                             (context as? android.app.Activity)?.runOnUiThread {
                                 messages = messages.dropLast(1) + "VIP: $answer"
                             }
