@@ -110,27 +110,41 @@ Adapta los pasos a la marca, modelo, versión y sistema operativo que indique el
                     )
 
                 val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
-                val connection = (url.openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    connectTimeout = 20000
-                    readTimeout = 30000
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json")
-                    setRequestProperty("x-goog-api-key", apiKey)
+                var code = 0
+                var responseText = ""
+                // Reintenta solo errores temporales de capacidad; nunca insiste ante cuota agotada.
+                for (attempt in 0..2) {
+                    val connection = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 20000
+                        readTimeout = 90000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("x-goog-api-key", apiKey)
+                    }
+                    try {
+                        connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                        code = connection.responseCode
+                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                        responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                    } finally {
+                        connection.disconnect()
+                    }
+                    if (code != 503 || attempt == 2) break
+                    Thread.sleep(1000L * (attempt + 1))
                 }
-                connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-                val code = connection.responseCode
-                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                val responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                connection.disconnect()
 
                 if (code !in 200..299) {
+                    val providerMessage = runCatching {
+                        JSONObject(responseText).optJSONObject("error")?.optString("message").orEmpty()
+                    }.getOrDefault("").take(300)
+                    val detail = if (providerMessage.isBlank()) "" else " Detalle: $providerMessage"
                     when (code) {
-                        429 -> throw IllegalStateException("Se alcanzó el límite gratuito temporal. Espera y vuelve a intentarlo.")
-                        400, 403 -> throw IllegalStateException("La clave no es válida o el modelo no está disponible en tu cuenta. Revisa tu clave de AI Studio.")
-                        404 -> throw IllegalStateException("El modelo no está disponible para esta clave o proyecto. Revisa el acceso en Google AI Studio.")
-                        503 -> throw IllegalStateException("Gemini está temporalmente ocupado. Intenta de nuevo en unos minutos.")
-                        else -> throw IllegalStateException("El servicio respondió con error HTTP $code. Intenta más tarde.")
+                        429 -> throw IllegalStateException("Se alcanzó el límite gratuito temporal. Espera y vuelve a intentarlo.$detail")
+                        400, 403 -> throw IllegalStateException("La clave no es válida o el modelo no está disponible en tu cuenta. Revisa tu clave de AI Studio.$detail")
+                        404 -> throw IllegalStateException("El modelo no está disponible para esta clave o proyecto. Revisa el acceso en Google AI Studio.$detail")
+                        503 -> throw IllegalStateException("Gemini sigue temporalmente ocupado después de varios intentos. Intenta más tarde.$detail")
+                        else -> throw IllegalStateException("El servicio respondió con error HTTP $code.$detail")
                     }
                 }
 
