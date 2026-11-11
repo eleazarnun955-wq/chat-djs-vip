@@ -1,6 +1,10 @@
 package com.djsebas.chatdjsvip
 
 import android.os.Bundle
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import org.json.JSONArray
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -94,6 +98,20 @@ fun ChatDjsVipApp() {
 
 @Composable
 private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String) -> Unit, modifier: Modifier = Modifier) {
+    val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        if (!spoken.isNullOrBlank()) onPrompt(spoken)
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-MX")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Habla con CHAT DJ'S VIP")
+            }
+            runCatching { speechLauncher.launch(intent) }
+        }
+    }
     Column(modifier.fillMaxSize().padding(14.dp)) {
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(messages) { msg ->
@@ -108,6 +126,9 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                 focusedTextColor = Color.White, unfocusedTextColor = Color.White
             ))
+            IconButton(onClick = { permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) }) {
+                Icon(Icons.Default.Mic, "Hablar", tint = Accent)
+            }
             IconButton(onClick = { send(prompt) }) { Icon(Icons.Default.Send, "Enviar", tint = Accent) }
         }
     }
