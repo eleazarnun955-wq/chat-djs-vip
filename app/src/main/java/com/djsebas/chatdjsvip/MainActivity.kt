@@ -104,7 +104,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
     var speechEngine by remember { mutableStateOf<TextToSpeech?>(null) }
     DisposableEffect(context) {
         val engine = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) engine.language = Locale("es", "MX")
+            if (status == TextToSpeech.SUCCESS) speechEngine?.language = Locale("es", "MX")
         }
         speechEngine = engine
         onDispose { engine.stop(); engine.shutdown(); speechEngine = null }
