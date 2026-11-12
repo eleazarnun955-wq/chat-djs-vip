@@ -6,6 +6,7 @@ import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.net.Uri
 import android.media.MediaPlayer
+import android.media.PlaybackParams
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import androidx.security.crypto.MasterKey.KeyScheme
@@ -435,6 +436,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var durationMs by remember { mutableIntStateOf(0) }
     var seekPositionMs by remember { mutableFloatStateOf(0f) }
     var isSeeking by remember { mutableStateOf(false) }
+    var playbackSpeed by remember { mutableFloatStateOf(1f) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -491,6 +493,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         durationMs = 0
         seekPositionMs = 0f
         isSeeking = false
+        playbackSpeed = 1f
     }
 
     fun playTrack(uriString: String, title: String) {
@@ -506,6 +509,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     durationMs = it.duration.coerceAtLeast(0)
                     currentPositionMs = 0
                     seekPositionMs = 0f
+                    runCatching { it.setPlaybackParams(PlaybackParams().setSpeed(playbackSpeed)) }
                     isLoading = false
                     isPlaying = true
                     it.start()
@@ -714,6 +718,22 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(formatAudioTime(if (isSeeking) seekPositionMs.toInt() else currentPositionMs), color = Color.White, fontSize = 11.sp)
                         Text(formatAudioTime(durationMs), color = Muted, fontSize = 11.sp)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Velocidad", color = Muted, fontSize = 12.sp)
+                        Slider(
+                            value = playbackSpeed,
+                            onValueChange = { playbackSpeed = it },
+                            onValueChangeFinished = {
+                                runCatching { player?.setPlaybackParams(PlaybackParams().setSpeed(playbackSpeed)) }
+                            },
+                            valueRange = 0.5f..2f,
+                            steps = 5,
+                            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                            enabled = !isLoading,
+                            colors = SliderDefaults.colors(thumbColor = Accent, activeTrackColor = Accent)
+                        )
+                        Text(String.format(Locale.getDefault(), "%.2fx", playbackSpeed), color = Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
