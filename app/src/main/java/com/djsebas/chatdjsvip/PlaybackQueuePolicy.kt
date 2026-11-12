@@ -32,3 +32,8 @@ internal fun addTrackToPlaybackQueue(
     if (selectedUri in baseQueue) return baseQueue
     return baseQueue + selectedUri
 }
+
+
+/** Restaura la cola guardada, descartando pistas eliminadas y entradas duplicadas. */
+internal fun restorePlaybackQueue(savedQueue: List<String>, library: List<String>): List<String> =
+    savedQueue.filter { it in library }.distinct()
