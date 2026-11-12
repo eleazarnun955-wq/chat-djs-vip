@@ -9,12 +9,12 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        // Paquete independiente: se instala junto a la versión original sin reemplazarla.
+        // Conserva el paquete y la firma de la instalación actual para actualizarla sin desinstalar.
         applicationId = "com.djsebas.chatdjsvip.v320"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "3.3.2"
+        versionCode = 5
+        versionName = "3.3.3"
     }
 
     signingConfigs {
@@ -28,9 +28,7 @@ android {
     }
 
     buildTypes {
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("debug")
-        }
+        getByName("debug") { signingConfig = signingConfigs.getByName("debug") }
     }
 
     buildFeatures { compose = true }
