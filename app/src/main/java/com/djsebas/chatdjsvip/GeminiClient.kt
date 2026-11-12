@@ -12,11 +12,16 @@ import androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionSche
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
 object GeminiClient {
     private const val MODEL = "gemini-3.8-flash"
+    private const val FALLBACK_MODEL = "gemini-3.5-flash-lite"
+    private const val MAX_RETRIES = 2
+
+    private class GeminiHttpException(val code: Int, val providerMessage: String) : Exception(providerMessage)
 
     fun reply(
         context: Context,
@@ -45,7 +50,7 @@ object GeminiClient {
 
                 val contents = JSONArray()
                 // Send only complete recent exchanges, so follow-up questions retain context.
-                val recent = previousMessages.takeLast(24)
+                val recent = previousMessages.takeLast(12)
                 var index = 0
                 while (index + 1 < recent.size) {
                     val userMessage = recent[index]
@@ -106,60 +111,35 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
                         )
                     )
                 )
+                val isAppCreation = question.startsWith("MODO_CREADOR_APPS:") ||
+                    question.contains("código", ignoreCase = true) ||
+                    question.contains("programa", ignoreCase = true) ||
+                    question.contains("aplicación", ignoreCase = true)
+                val maxOutputTokens = if (isAppCreation) 6000 else 2048
                 val body = JSONObject()
                     .put("systemInstruction", systemInstruction)
                     .put("contents", contents)
                     .put(
                         "generationConfig",
-                        JSONObject().put("maxOutputTokens", 6000)
+                        JSONObject().put("maxOutputTokens", maxOutputTokens)
                     )
 
-                val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
-                var code = 0
-                var responseText = ""
-                var lastNetworkError: java.io.IOException? = null
-                // Reintenta fallas transitorias de red/servidor; no insiste si la cuota gratuita se agotó.
-                for (attempt in 0..2) {
-                    var connection: HttpURLConnection? = null
-                    try {
-                        connection = (url.openConnection() as HttpURLConnection).apply {
-                            requestMethod = "POST"
-                            connectTimeout = 20000
-                            readTimeout = 90000
-                            doOutput = true
-                            setRequestProperty("Content-Type", "application/json")
-                            setRequestProperty("x-goog-api-key", apiKey)
+                val responseText = try {
+                    requestWithFailover(body, apiKey)
+                } catch (error: GeminiHttpException) {
+                    val detail = error.providerMessage.take(350)
+                    val explanation = when (error.code) {
+                        429 -> if (isQuotaError(detail)) {
+                            "Google agotó la cuota gratuita de esta clave o proyecto. Revisa el uso y los límites en AI Studio. Detalle: $detail"
+                        } else {
+                            "Gemini está limitando temporalmente las solicitudes. Espera un poco y vuelve a intentarlo. Detalle: $detail"
                         }
-                        connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-                        code = connection.responseCode
-                        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-                        responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                        lastNetworkError = null
-                    } catch (error: java.io.IOException) {
-                        lastNetworkError = error
-                        if (attempt == 2) throw error
-                        Thread.sleep(1000L * (attempt + 1))
-                        continue
-                    } finally {
-                        connection?.disconnect()
+                        503 -> "Los servidores de Gemini están saturados; también falló el modelo ligero de respaldo. Intenta de nuevo en unos minutos. Detalle: $detail"
+                        400, 403 -> "La clave fue rechazada o no tiene permiso para este modelo. Comprueba la clave en Google AI Studio. Detalle: $detail"
+                        404 -> "El modelo no está disponible para esta clave o proyecto. Detalle: $detail"
+                        else -> "Gemini respondió con HTTP " + error.code + ". Detalle: $detail"
                     }
-                    if (code !in listOf(502, 503, 504) || attempt == 2) break
-                    Thread.sleep(1000L * (attempt + 1))
-                }
-                if (lastNetworkError != null) throw lastNetworkError
-
-                if (code !in 200..299) {
-                    val providerMessage = runCatching {
-                        JSONObject(responseText).optJSONObject("error")?.optString("message").orEmpty()
-                    }.getOrDefault("").take(300)
-                    val detail = if (providerMessage.isBlank()) "" else " Detalle: $providerMessage"
-                    when (code) {
-                        429 -> throw IllegalStateException("Se alcanzó el límite gratuito temporal. Espera y vuelve a intentarlo.$detail")
-                        400, 403 -> throw IllegalStateException("La clave no es válida o el modelo no está disponible en tu cuenta. Revisa tu clave de AI Studio.$detail")
-                        404 -> throw IllegalStateException("El modelo no está disponible para esta clave o proyecto. Revisa el acceso en Google AI Studio.$detail")
-                        503 -> throw IllegalStateException("Gemini sigue temporalmente ocupado después de varios intentos. Intenta más tarde.$detail")
-                        else -> throw IllegalStateException("El servicio respondió con error HTTP $code.$detail")
-                    }
+                    throw IllegalStateException(explanation)
                 }
 
                 val json = JSONObject(responseText)
@@ -183,4 +163,80 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
             Handler(Looper.getMainLooper()).post { onResult(result) }
         }.start()
     }
+    private fun requestWithFailover(body: JSONObject, apiKey: String): String {
+        return try {
+            requestModel(MODEL, body, apiKey)
+        } catch (primaryError: GeminiHttpException) {
+            val retryWithFallback = primaryError.code == 503 ||
+                primaryError.code == 502 || primaryError.code == 504 ||
+                (primaryError.code == 429 && !isQuotaError(primaryError.providerMessage))
+            if (!retryWithFallback) throw primaryError
+            try {
+                requestModel(FALLBACK_MODEL, body, apiKey)
+            } catch (fallbackError: GeminiHttpException) {
+                throw GeminiHttpException(
+                    fallbackError.code,
+                    "El modelo principal respondió HTTP " + primaryError.code +
+                        " y el modelo alternativo también falló: " + fallbackError.providerMessage
+                )
+            }
+        }
+    }
+
+    private fun requestModel(model: String, body: JSONObject, apiKey: String): String {
+        val url = URL("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent")
+        for (attempt in 0..MAX_RETRIES) {
+            var connection: HttpURLConnection? = null
+            try {
+                connection = (url.openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    connectTimeout = 20000
+                    readTimeout = 60000
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json")
+                    setRequestProperty("x-goog-api-key", apiKey)
+                }
+                connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+                val code = connection.responseCode
+                val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+                val responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+                if (code in 200..299) return responseText
+
+                val providerMessage = runCatching {
+                    val error = JSONObject(responseText).optJSONObject("error")
+                    error?.optString("message").orEmpty().ifBlank {
+                        error?.optString("status").orEmpty()
+                    }
+                }.getOrDefault("Sin detalle del proveedor")
+                val retryable = code == 429 || code == 500 || code == 502 || code == 503 || code == 504
+                if (!retryable || attempt == MAX_RETRIES) {
+                    throw GeminiHttpException(code, providerMessage)
+                }
+                val retryAfter = connection.getHeaderField("Retry-After")?.toLongOrNull()?.coerceIn(1, 8)
+                Thread.sleep(retryAfter?.times(1000L) ?: (1000L shl attempt))
+            } catch (error: GeminiHttpException) {
+                throw error
+            } catch (error: java.net.SocketTimeoutException) {
+                if (attempt == MAX_RETRIES) {
+                    throw GeminiHttpException(504, "La conexión con " + model + " agotó el tiempo de espera después de varios intentos.")
+                }
+                Thread.sleep(1000L shl attempt)
+            } catch (error: IOException) {
+                if (attempt == MAX_RETRIES) {
+                    throw GeminiHttpException(503, "No se pudo conectar con Google: " + (error.message ?: "error de red"))
+                }
+                Thread.sleep(1000L shl attempt)
+            } finally {
+                connection?.disconnect()
+            }
+        }
+        throw IllegalStateException("No se pudo completar la solicitud.")
+    }
+
+    private fun isQuotaError(message: String): Boolean {
+        val normalized = message.lowercase()
+        return normalized.contains("quota") || normalized.contains("per day") ||
+            normalized.contains("daily limit") || normalized.contains("billing")
+    }
+
 }
