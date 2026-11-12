@@ -644,6 +644,20 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                                 )
                             }
                             IconButton(onClick = {
+                                runCatching {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "audio/*"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Compartir canción"))
+                                }.onFailure {
+                                    android.widget.Toast.makeText(context, "No se pudo compartir este audio", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Default.Share, contentDescription = "Compartir canción", tint = Accent)
+                            }
+                            IconButton(onClick = {
                                 if (currentUri == uriString) stopPlayback()
                                 if (uriString in favorites) {
                                     favorites = favorites - uriString
