@@ -5,7 +5,7 @@ Aplicación Android independiente en español: asistente conversacional, Escuela
 ## Funciones incluidas
 - Chat con historial local, respuestas con Gemini opcional, entrada por voz, análisis de imágenes, lectura en voz alta, copiar y compartir respuestas.
 - Escuela DJ con contenidos guiados sobre software, controladoras, CDJ, mezcladoras, tornamesas, teoría musical y preparación de eventos.
-- Biblioteca musical local con controles de reproducción y cola interactiva; la cola conserva todas las canciones aunque se aplique una búsqueda o filtro de favoritas.
+- Biblioteca musical local con controles de reproducción y cola interactiva; la cola conserva todas las canciones aunque se aplique una búsqueda o filtro de favoritas; la reproducción automática utiliza el estado actualizado de la cola y los controles al terminar cada pista.
 - Estudio de Aplicaciones para diseñar proyectos Android y web, generar código, conservar el contexto, continuar mejoras y guardar resultados.
 - Importación segura de proyectos ZIP con lectura de archivos de texto y contexto de código para solicitar mejoras y correcciones sobre el proyecto existente. Límites de tamaño y filtrado de rutas para reducir riesgos al importar.
 - Explorador y editor de archivos dentro de App Studio: seleccionar archivos importados, editar su contenido, crear archivos nuevos y eliminar archivos con confirmación; los cambios se guardan en el proyecto.
@@ -14,7 +14,7 @@ Aplicación Android independiente en español: asistente conversacional, Escuela
 - No se presentan como reales integraciones de búsqueda web, ejecución de código, compilación o publicación que todavía no estén conectadas.
 
 ## Construcción y entrega
-- Versión vigente: **3.6.3**.
+- Versión vigente: **3.6.4**.
 - El identificador de aplicación se conserva como `com.djsebas.chatdjsvip.v320`, con `versionCode` incremental y la firma configurada del workflow para actualizar la instalación existente.
 - GitHub Actions ejecuta pruebas unitarias disponibles, Android Lint y compila `app-debug.apk` al actualizar `main` o al ejecutar manualmente el workflow `Android APK`. La etiqueta y el nombre del artefacto se obtienen automáticamente de `versionName`.
 - El workflow adjunta el APK como artefacto y también lo publica como archivo individual en GitHub Releases.
