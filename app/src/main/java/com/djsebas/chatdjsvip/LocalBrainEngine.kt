@@ -226,8 +226,10 @@ object LocalBrainEngine {
         knowledge.any { entry -> entry.keywords.any { normalize(it) in q } }
 
     private fun localKnowledgeAnswer(q: String): String {
+        // Normalize the question too: user input may contain uppercase words or accents.
+        val normalizedQuestion = normalize(q)
         val matches = knowledge.map { entry ->
-            entry to entry.keywords.count { normalize(it) in q }
+            entry to entry.keywords.count { normalize(it) in normalizedQuestion }
         }.filter { it.second > 0 }.sortedByDescending { it.second }
         if (matches.isEmpty()) return "No encontré una ficha local suficiente para ese tema."
         return if (matches.size == 1) matches.first().first.answer
