@@ -265,11 +265,37 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
         "Preparación de eventos" to "Estructura de sesión, lectura de pista, niveles, respaldo y plan ante fallas."
     )
     var selectedTopic by remember { mutableStateOf<String?>(null) }
+    var searchText by remember { mutableStateOf("") }
+    val filteredTopics = topics.filter { (name, desc) ->
+        name.contains(searchText, ignoreCase = true) || desc.contains(searchText, ignoreCase = true)
+    }
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Text("ESCUELA DJ", fontSize = 23.sp, fontWeight = FontWeight.Bold)
-        Text("Aprende desde principiante hasta nivel profesional.", color = Muted, modifier = Modifier.padding(top = 4.dp, bottom = 14.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(topics) { (name, desc) ->
+        Text("Aprende desde principiante hasta nivel profesional.", color = Muted, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+        OutlinedTextField(
+            value = searchText,
+            onValueChange = { searchText = it },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            singleLine = true,
+            placeholder = { Text("Buscar tema, técnica o programa…") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Accent) },
+            trailingIcon = {
+                if (searchText.isNotEmpty()) IconButton(onClick = { searchText = "" }) {
+                    Icon(Icons.Default.Close, contentDescription = "Borrar búsqueda")
+                }
+            }
+        )
+        Text("${filteredTopics.size} temas disponibles", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+        if (filteredTopics.isEmpty()) {
+            Surface(color = Panel, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.SearchOff, contentDescription = null, tint = Muted, modifier = Modifier.size(30.dp))
+                    Text("No encontré ese tema", fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+                    Text("Prueba con BPM, mezcla, Serato o transiciones.", color = Muted, fontSize = 12.sp)
+                }
+            }
+        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(filteredTopics) { (name, desc) ->
                 Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { selectedTopic = name }) {
                     Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.MusicNote, null, tint = Accent, modifier = Modifier.size(28.dp))
