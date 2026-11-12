@@ -49,7 +49,7 @@ class PlaybackQueuePolicyTest {
 
     @Test fun addToQueueRejectsTracksOutsideTheLibrary() {
         assertEquals(
-            listOf("track-a"),
+            emptyList<String>(),
             addTrackToPlaybackQueue("track-a", emptyList(), listOf("track-a"), "removed")
         )
     }
