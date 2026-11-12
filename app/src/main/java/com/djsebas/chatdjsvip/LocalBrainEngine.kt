@@ -218,8 +218,6 @@ object LocalBrainEngine {
             "La frecuencia de muestreo mide muestras por segundo: 44.1 kHz significa 44,100 muestras por segundo. Al combinar fuentes con distintas frecuencias, convierte de forma controlada para evitar cambios de velocidad o artefactos."),
         KnowledgeEntry(listOf("clipping digital", "saturacion digital", "picos de audio"),
             "El clipping digital ocurre cuando la señal supera el máximo representable y se recortan los picos. Deja margen antes del limitador, controla la ganancia por etapas y revisa los picos y la sonoridad del archivo exportado."),
-        KnowledgeEntry(listOf("modelo local", "llm local", "ia offline", "inteligencia artificial local"),
-            "Un asistente offline basado solo en reglas y fichas no equivale a un modelo generativo. Para ejecutar un LLM local se necesita integrar un modelo compatible, runtime, licencia, almacenamiento y memoria RAM suficientes. Sin esos componentes no debe anunciarse como IA generativa completa."),
         KnowledgeEntry(listOf("copia de seguridad", "backup", "respaldar"),
             "Una copia de seguridad debe poder restaurarse, no solo crearse. Guarda una copia independiente, verifica su integridad y prueba la restauración. No guardes la única copia en la misma carpeta o dispositivo que contiene el original."),
     )
