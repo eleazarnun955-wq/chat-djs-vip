@@ -13,8 +13,8 @@ android {
         applicationId = "com.djsebas.chatdjsvip.v320"
         minSdk = 26
         targetSdk = 35
-        versionCode = 39
-        versionName = "3.6.7"
+        versionCode = 40
+        versionName = "3.6.8"
     }
 
     signingConfigs {
