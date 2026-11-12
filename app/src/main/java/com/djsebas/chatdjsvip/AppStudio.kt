@@ -31,6 +31,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     }
     var requirements by remember { mutableStateOf("") }
     var target by remember { mutableStateOf(preferences.getString("app_studio_target", "Android") ?: "Android") }
+    var taskMode by remember { mutableStateOf("Crear") }
     var result by remember { mutableStateOf(preferences.getString("app_studio_last_result", "").orEmpty()) }
     var isGenerating by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Describe la aplicación que quieres crear.") }
@@ -74,6 +75,12 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             FilterChip(selected = target == "Android", onClick = { target = "Android"; preferences.edit().putString("app_studio_target", "Android").apply() }, label = { Text("Android / APK") })
             FilterChip(selected = target == "Web", onClick = { target = "Web"; preferences.edit().putString("app_studio_target", "Web").apply() }, label = { Text("Página / Web app") })
         }
+        Text("¿Qué quieres hacer ahora?", fontWeight = FontWeight.SemiBold)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Crear", "Mejorar", "Corregir", "Preparar build").forEach { mode ->
+                FilterChip(selected = taskMode == mode, onClick = { taskMode = mode }, label = { Text(mode) })
+            }
+        }
         OutlinedTextField(
             value = requirements, onValueChange = { requirements = it }, modifier = Modifier.fillMaxWidth(), minLines = 4,
             label = { Text(if (studioHistory.isEmpty()) "Describe tu aplicación" else "Nueva instrucción o mejora") },
@@ -89,7 +96,7 @@ $userRequest
 Entrega una solución de desarrollo realista. Primero resume el alcance y la arquitectura. Después organiza la respuesta por archivos, indicando la ruta exacta y proporcionando el contenido completo de cada archivo esencial. IMPORTANTE: antes de cada bloque de código escribe una línea independiente con este formato exacto: Archivo: ruta/relativa/al/proyecto.ext. Usa rutas relativas seguras, sin .. ni rutas absolutas. Incluye dependencias, versiones compatibles, configuración, instrucciones de compilación y pruebas. Para Android usa Kotlin y Jetpack Compose salvo que exista una razón técnica clara para otra opción. Para web indica framework, estructura y comandos. Incluye manejo de errores, accesibilidad y seguridad. No inventes servicios ya conectados ni afirmes que compilaste o probaste algo. Si faltan datos imprescindibles, declara los supuestos y pregunta solo lo necesario. Si la respuesta es demasiado extensa, divide el trabajo en entregas numeradas y no omitas archivos esenciales. Si ya existe un proyecto en el historial, conserva sus decisiones y archivos previos y entrega cambios compatibles, indicando exactamente qué archivos reemplazar o crear."""
             isGenerating = true
             result = ""
-            status = if (studioHistory.isEmpty()) "Diseñando la solución…" else "Continuando el proyecto con su contexto anterior…"
+            status = when (taskMode) {\n                "Crear" -> "Diseñando la aplicación…"\n                "Mejorar" -> "Analizando mejoras compatibles…"\n                "Corregir" -> "Revisando posibles errores…"\n                else -> "Preparando configuración de compilación…"\n            }
             val historySnapshot = studioHistory.toList()
             GeminiClient.reply(context, prompt, historySnapshot) { answer ->
                 studioHistory.add("Tú: $prompt")
@@ -109,7 +116,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
             } else {
                 Icon(Icons.Default.Code, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (studioHistory.isEmpty()) "Diseñar y generar aplicación" else "Continuar / mejorar proyecto")
+                Text(when (taskMode) {\n                    "Crear" -> "Diseñar y generar aplicación"\n                    "Mejorar" -> "Aplicar mejoras al proyecto"\n                    "Corregir" -> "Analizar y corregir errores"\n                    else -> "Preparar compilación y pruebas"\n                })
             }
         }
         if (studioHistory.isNotEmpty()) {
@@ -154,7 +161,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 Text("Exportar archivos del proyecto en ZIP")
             }
             Text(
-                "El ZIP contiene los bloques de código detectados y el documento completo. Es una exportación de archivos fuente; la compilación, ejecución de pruebas y publicación automática todavía requieren un entorno de construcción integrado.",
+                "El ZIP contiene los bloques de código detectados y el documento completo. La compilación y ejecución de proyectos generados aún no están conectadas; esta pantalla prepara y organiza el trabajo, sin simular una compilación.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp
             )
         }
