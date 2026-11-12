@@ -423,7 +423,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 else -> "Revisando preparación de build localmente…"
             }
             val historySnapshot = studioHistory.toList()
-            LocalBrainEngine.reply(context, prompt, historySnapshot) { answer ->
+            OnDeviceLlmEngine.reply(context, prompt, historySnapshot) { answer ->
                 studioHistory.add("Tú: $prompt")
                 studioHistory.add("VIP: $answer")
                 while (studioHistory.size > 24) studioHistory.removeAt(0)
