@@ -54,7 +54,7 @@ object ProjectZipImporter {
     )
 
     private fun safePath(path: String): String? {
-        val normalized = path.replace('\\\\', '/')
+        val normalized = path.replace('\\', '/')
         if (normalized.startsWith('/') || normalized.contains(':')) return null
         val parts = normalized.split('/')
         if (parts.any { it == ".." || it.isBlank() }) return null
