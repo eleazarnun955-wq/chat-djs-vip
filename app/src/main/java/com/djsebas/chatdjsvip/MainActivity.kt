@@ -58,6 +58,7 @@ fun ChatDjsVipApp() {
     val preferences = remember(context) { context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE) }
     var section by remember { mutableStateOf("Chat") }
     var showAiSettings by remember { mutableStateOf(false) }
+    var showClearChat by remember { mutableStateOf(false) }
     var apiKeyInput by remember { mutableStateOf("") }
     val securePreferences = remember(context) { runCatching { val masterKey = MasterKey.Builder(context).setKeyScheme(KeyScheme.AES256_GCM).build(); EncryptedSharedPreferences.create(context, "chat_djs_vip_secure", masterKey, PrefKeyEncryptionScheme.AES256_SIV, PrefValueEncryptionScheme.AES256_GCM) }.getOrNull() }
     var prompt by remember { mutableStateOf("") }
@@ -88,7 +89,10 @@ fun ChatDjsVipApp() {
                 }
             }, navigationIcon = {
                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Accent, modifier = Modifier.padding(start = 16.dp).size(28.dp))
-            }, actions = { IconButton(onClick = { apiKeyInput = securePreferences?.getString("gemini_api_key", "").orEmpty(); showAiSettings = true }) { Icon(Icons.Default.Settings, contentDescription = "Configurar IA", tint = Accent) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Panel))
+            }, actions = {
+                if (section == "Chat") IconButton(onClick = { showClearChat = true }) { Icon(Icons.Default.DeleteOutline, contentDescription = "Limpiar conversación", tint = Accent) }
+                IconButton(onClick = { apiKeyInput = securePreferences?.getString("gemini_api_key", "").orEmpty(); showAiSettings = true }) { Icon(Icons.Default.Settings, contentDescription = "Configurar IA", tint = Accent) }
+            }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Panel))
         }, bottomBar = {
             NavigationBar(containerColor = Panel) {
                 NavigationBarItem(selected = section == "Chat", onClick = { section = "Chat" }, icon = { Icon(Icons.Default.Chat, null) }, label = { Text("Chat") })
@@ -112,6 +116,19 @@ fun ChatDjsVipApp() {
                 "Escuela DJ" -> SchoolScreen(Modifier.padding(padding))
                 else -> LibraryScreen(Modifier.padding(padding))
             }
+        }
+        if (showClearChat) {
+            AlertDialog(
+                onDismissRequest = { showClearChat = false },
+                title = { Text("Limpiar conversación") },
+                text = { Text("¿Quieres borrar el historial guardado de este chat? Esta acción no se puede deshacer.") },
+                confirmButton = { TextButton(onClick = {
+                    messages = listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.")
+                    showClearChat = false
+                }) { Text("Borrar historial") } },
+                dismissButton = { TextButton(onClick = { showClearChat = false }) { Text("Cancelar") } },
+                containerColor = Panel
+            )
         }
         if (showAiSettings) {
             AlertDialog(
@@ -192,7 +209,16 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 Surface(color = if (user) Color(0xFF174C43) else Panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(msg, Modifier.weight(1f).padding(2.dp), color = Color.White, fontSize = 15.sp)
-                        if (msg.startsWith("VIP:")) IconButton(onClick = { speechEngine?.speak(msg.removePrefix("VIP:").trim(), TextToSpeech.QUEUE_FLUSH, null, "vip_reply") }) { Icon(Icons.Default.VolumeUp, "Escuchar respuesta", tint = Accent) }
+                        if (msg.startsWith("VIP:")) {
+                            IconButton(onClick = {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, msg.removePrefix("VIP:").trim())
+                                }
+                                runCatching { context.startActivity(Intent.createChooser(shareIntent, "Compartir respuesta")) }
+                            }) { Icon(Icons.Default.Share, "Compartir respuesta", tint = Accent) }
+                            IconButton(onClick = { speechEngine?.speak(msg.removePrefix("VIP:").trim(), TextToSpeech.QUEUE_FLUSH, null, "vip_reply") }) { Icon(Icons.Default.VolumeUp, "Escuchar respuesta", tint = Accent) }
+                        }
                     }
                 }
             }
