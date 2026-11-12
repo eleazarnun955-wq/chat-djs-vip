@@ -30,9 +30,9 @@ object ProjectBuildValidator {
         val rootBuild = rootBuildPath != null
         val appBuild = appBuildPath != null
         val manifestPath = listOf(
-            "app/src/main/AndroidManifest.xml",
-            "src/main/AndroidManifest.xml",
-            "AndroidManifest.xml"
+            "app/src/main/androidmanifest.xml",
+            "src/main/androidmanifest.xml",
+            "androidmanifest.xml"
         ).firstOrNull { it in paths }
         val manifestText = manifestPath?.let(::content).orEmpty()
         val manifestValid = manifestPath != null &&
@@ -65,7 +65,7 @@ object ProjectBuildValidator {
                 if (includesApp) "settings.gradle declara el módulo :app." else "No se detectó la inclusión explícita de :app en settings.gradle."),
             ProjectBuildCheck("Plugin Android", appBuild && androidPlugin,
                 if (androidPlugin) "El módulo app declara el plugin de aplicación Android." else "No se detectó com.android.application en app/build.gradle(.kts)."),
-            ProjectBuildCheck("AndroidManifest.xml", manifestValid,
+            ProjectBuildCheck("androidmanifest.xml", manifestValid,
                 if (manifestValid) "Se encontró un manifiesto con estructura XML inicial." else "Falta un manifiesto reconocible o su contenido parece incompleto."),
             ProjectBuildCheck("Código fuente Android", source,
                 if (source) "Se encontró al menos un archivo Kotlin o Java en src/main." else "No se detectó código Kotlin/Java en src/main."),
