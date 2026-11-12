@@ -250,6 +250,21 @@ private fun assistantReply(input: String): String = djKnowledgeReply(input)
 
 @Composable
 private fun SchoolScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val progressPrefs = remember(context) { context.getSharedPreferences("chat_djs_vip_school", android.content.Context.MODE_PRIVATE) }
+    var completedTopics by remember {
+        val saved = progressPrefs.getString("completed_topics", null)
+        mutableStateOf(if (saved.isNullOrBlank()) emptySet() else runCatching {
+            val json = JSONArray(saved)
+            List(json.length()) { index -> json.getString(index) }.toSet()
+        }.getOrDefault(emptySet()))
+    }
+    fun saveProgress(updated: Set<String>) {
+        completedTopics = updated
+        val json = JSONArray()
+        updated.forEach { json.put(it) }
+        progressPrefs.edit().putString("completed_topics", json.toString()).apply()
+    }
     val topics = listOf(
         "Serato DJ" to "Biblioteca, crates, puntos Cue, loops, beatmatch y mezcla armónica.",
         "rekordbox" to "Preparación USB, análisis de pistas, hot cues, memory cues y exportación para CDJ.",
@@ -271,7 +286,14 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
     }
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Text("ESCUELA DJ", fontSize = 23.sp, fontWeight = FontWeight.Bold)
-        Text("Aprende desde principiante hasta nivel profesional.", color = Muted, modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+        Text("Aprende desde principiante hasta nivel profesional.", color = Muted, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
+        Text("Progreso: ${completedTopics.size} de ${topics.size} temas completados", color = Accent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
+        LinearProgressIndicator(
+            progress = { completedTopics.size.toFloat() / topics.size.coerceAtLeast(1) },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            color = Accent,
+            trackColor = Panel
+        )
         OutlinedTextField(
             value = searchText,
             onValueChange = { searchText = it },
@@ -298,11 +320,13 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
             items(filteredTopics) { (name, desc) ->
                 Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { selectedTopic = name }) {
                     Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.MusicNote, null, tint = Accent, modifier = Modifier.size(28.dp))
-                        Column(Modifier.padding(start = 12.dp)) {
+                        Icon(if (name in completedTopics) Icons.Default.CheckCircle else Icons.Default.MusicNote, null, tint = if (name in completedTopics) Accent else Accent, modifier = Modifier.size(28.dp))
+                        Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text(name, fontWeight = FontWeight.Bold)
                             Text(desc, color = Muted, fontSize = 13.sp)
+                            if (name in completedTopics) Text("Tema completado", color = Accent, fontSize = 11.sp)
                         }
+                        if (name in completedTopics) Icon(Icons.Default.Verified, contentDescription = "Completado", tint = Accent)
                     }
                 }
             }
@@ -312,7 +336,14 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
                 onDismissRequest = { selectedTopic = null },
                 title = { Text(topic) },
                 text = { Text(lessonFor(topic), fontSize = 14.sp) },
-                confirmButton = { TextButton(onClick = { selectedTopic = null }) { Text("Entendido") } },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val updated = if (topic in completedTopics) completedTopics - topic else completedTopics + topic
+                        saveProgress(updated)
+                        selectedTopic = null
+                    }) { Text(if (topic in completedTopics) "Quitar progreso" else "Marcar como aprendido") }
+                },
+                dismissButton = { TextButton(onClick = { selectedTopic = null }) { Text("Cerrar") } },
                 containerColor = Panel,
                 titleContentColor = Color.White,
                 textContentColor = Color.White
