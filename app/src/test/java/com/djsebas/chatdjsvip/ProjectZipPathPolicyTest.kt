@@ -37,7 +37,7 @@ class ProjectZipPathPolicyTest {
             "gradle/wrapper/gradle-wrapper.jar",
             encoded
         )
-        assertTrue(ProjectZipBinaryFileCodec.isGradleWrapperJar("gradle\\\\wrapper\\\\gradle-wrapper.jar"))
+        assertTrue(ProjectZipBinaryFileCodec.isGradleWrapperJar("gradle\\wrapper\\gradle-wrapper.jar"))
         assertEquals(original.toList(), restored?.toList())
     }
 
