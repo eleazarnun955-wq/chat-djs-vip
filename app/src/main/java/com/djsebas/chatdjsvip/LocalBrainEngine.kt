@@ -108,8 +108,8 @@ object LocalBrainEngine {
             isFollowUp(q) -> LocalBrainIntent.FOLLOW_UP
             isDjQuestion(q) -> LocalBrainIntent.DJ
             isAppDevelopment(q) -> LocalBrainIntent.APP_DEVELOPMENT
-            isReasoningRequest(q) -> LocalBrainIntent.REASONING
             hasKnownTopic(q) -> LocalBrainIntent.KNOWN_TOPIC
+            isReasoningRequest(q) -> LocalBrainIntent.REASONING
             else -> LocalBrainIntent.UNKNOWN
         }
     }
@@ -227,12 +227,14 @@ object LocalBrainEngine {
     private fun hasKnownTopic(q: String) =
         knowledge.any { entry -> entry.keywords.any { normalize(it) in q } }
 
-    private fun localKnowledgeAnswer(q: String): String =
-        knowledge.map { entry -> entry to entry.keywords.count { normalize(it) in q } }
-            .filter { it.second > 0 }
-            .maxByOrNull { it.second }
-            ?.first?.answer
-            ?: "No encontré una ficha local suficiente para ese tema."
+    private fun localKnowledgeAnswer(q: String): String {
+        val matches = knowledge.map { entry ->
+            entry to entry.keywords.count { normalize(it) in q }
+        }.filter { it.second > 0 }.sortedByDescending { it.second }
+        if (matches.isEmpty()) return "No encontré una ficha local suficiente para ese tema."
+        return if (matches.size == 1) matches.first().first.answer
+        else matches.joinToString("\\n\\n") { it.first.answer }
+    }
 
     private fun appDevelopmentGuide(q: String): String =
         "MODO DE DESARROLLO LOCAL\n" +
