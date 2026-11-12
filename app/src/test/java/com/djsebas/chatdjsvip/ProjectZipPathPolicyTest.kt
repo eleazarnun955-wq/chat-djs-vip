@@ -29,4 +29,21 @@ class ProjectZipPathPolicyTest {
         assertTrue(ProjectZipPathPolicy.isTextFile("app/Main.kt"))
         assertFalse(ProjectZipPathPolicy.isTextFile("app/image.png"))
     }
+    @Test
+    fun preservesGradleWrapperJarAsBase64AndRestoresExactBytes() {
+        val original = byteArrayOf(0, 1, 2, 3, 10, 13, -1)
+        val encoded = ProjectZipBinaryFileCodec.encodeGradleWrapper(original)
+        val restored = ProjectZipBinaryFileCodec.decodeGradleWrapper(
+            "gradle/wrapper/gradle-wrapper.jar",
+            encoded
+        )
+        assertTrue(ProjectZipBinaryFileCodec.isGradleWrapperJar("gradle\\\\wrapper\\\\gradle-wrapper.jar"))
+        assertEquals(original.toList(), restored?.toList())
+    }
+
+    @Test
+    fun doesNotDecodeBinaryMarkerForOtherFiles() {
+        assertNull(ProjectZipBinaryFileCodec.decodeGradleWrapper("app/src/Main.kt", "base64:AAE="))
+    }
+
 }
