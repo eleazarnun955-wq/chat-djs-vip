@@ -23,24 +23,34 @@ jobs:
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Read app version
+        id: app-version
+        run: |
+          APP_VERSION=$(awk -F '"' '/versionName[[:space:]]*=/ {print $2; exit}' app/build.gradle.kts)
+          if [ -z "$APP_VERSION" ]; then
+            echo "No se pudo detectar versionName en app/build.gradle.kts"
+            exit 1
+          fi
+          echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "version=$APP_VERSION" >> "$GITHUB_OUTPUT"
       - name: Restore stable Android signing key
         run: |
           mkdir -p "$HOME/.android"
           base64 --decode .github/android-debug-keystore.b64 > "$HOME/.android/debug.keystore"
           chmod 600 "$HOME/.android/debug.keystore"
-      - name: Build debug APK
-        run: gradle assembleDebug
+      - name: Run unit tests, lint and build APK
+        run: gradle testDebugUnitTest lintDebug assembleDebug
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CHAT-DJS-VIP-3.3.3
+          name: CHAT-DJS-VIP-${{ env.APP_VERSION }}
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish direct APK download
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: chat-djs-vip-3.3.3-build-${{ github.run_number }}
-          name: CHAT DJ'S VIP 3.3.3 - Actualización
-          body: CHAT DJ'S VIP 3.3.3. Añade exportación del Estudio de Aplicaciones a ZIP. Conserva el paquete y la firma de la instalación existente.
+          tag_name: chat-dj-vip-${{ env.APP_VERSION }}-build-${{ github.run_number }}
+          name: CHAT DJ'S VIP ${{ env.APP_VERSION }} - Actualización
+          body: CHAT DJ'S VIP ${{ env.APP_VERSION }}. Compilación validada con pruebas unitarias y Android Lint. Conserva el paquete y la firma de la instalación existente.
           files: app/build/outputs/apk/debug/app-debug.apk
           make_latest: true
