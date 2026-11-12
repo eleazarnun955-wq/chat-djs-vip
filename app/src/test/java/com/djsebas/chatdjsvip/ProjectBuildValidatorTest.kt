@@ -53,6 +53,22 @@ android {
         assertTrue(report.checks.any { it.title == "Manifiesto XML" && !it.passed })
     }
 
+    @Test fun recognizesLauncherDeclaredOnActivityAlias() {
+        val manifest = """<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application>
+                <activity android:name=".MainActivity" />
+                <activity-alias android:name=".Launcher" android:targetActivity=".MainActivity">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity-alias>
+            </application>
+        </manifest>"""
+        val report = ProjectBuildValidator.validate(completeProject(manifest))
+        assertTrue(report.checks.any { it.title == "Actividad de inicio" && it.passed })
+    }
+
     @Test fun warnsWhenLauncherIsMissing() {
         val manifest = """<manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application><activity android:name=".MainActivity" /></application>
