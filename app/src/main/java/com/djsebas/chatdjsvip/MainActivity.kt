@@ -438,6 +438,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var isSeeking by remember { mutableStateOf(false) }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var repeatCurrent by remember { mutableStateOf(false) }
+    var autoPlayNext by remember { mutableStateOf(true) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -525,9 +526,22 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         seekPositionMs = 0f
                         isPlaying = true
                     } else {
-                        runCatching { it.seekTo(0) }
-                        currentPositionMs = durationMs
-                        isPlaying = false
+                        val completedUri = currentUri
+                        val nextIndex = sortedTracks.indexOf(completedUri) + 1
+                        val nextUri = sortedTracks.getOrNull(nextIndex)
+                        if (autoPlayNext && nextUri != null) {
+                            val next = Uri.parse(nextUri)
+                            val nextTitle = runCatching {
+                                context.contentResolver.query(next, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                                }
+                            }.getOrNull() ?: next.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                            playTrack(nextUri, nextTitle)
+                        } else {
+                            runCatching { it.seekTo(0) }
+                            currentPositionMs = durationMs
+                            isPlaying = false
+                        }
                     }
                     isLoading = false
                 }
@@ -709,6 +723,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         }
                         TextButton(onClick = { stopPlayback() }) { Text("Detener") }
                         TextButton(onClick = { repeatCurrent = !repeatCurrent }) { Text(if (repeatCurrent) "Repetir: Sí" else "Repetir: No", color = if (repeatCurrent) Accent else Color.White) }
+                        TextButton(onClick = { autoPlayNext = !autoPlayNext }) { Text(if (autoPlayNext) "Siguiente: Sí" else "Siguiente: No", color = if (autoPlayNext) Accent else Color.White) }
                     }
                     Slider(
                         value = if (isSeeking) seekPositionMs else currentPositionMs.toFloat(),
