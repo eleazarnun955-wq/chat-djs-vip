@@ -40,9 +40,12 @@ object ProjectBuildValidator {
             }
             val applications = root.getElementsByTagName("application")
             var launcher = false
+            // Un launcher puede declararse en una activity o en un activity-alias.
             val activities = root.getElementsByTagName("activity")
-            for (i in 0 until activities.length) {
-                val activity = activities.item(i) as? org.w3c.dom.Element ?: continue
+            val aliases = root.getElementsByTagName("activity-alias")
+            val launchableComponents = (0 until activities.length).mapNotNull { activities.item(it) as? org.w3c.dom.Element } +
+                (0 until aliases.length).mapNotNull { aliases.item(it) as? org.w3c.dom.Element }
+            for (activity in launchableComponents) {
                 val filters = activity.getElementsByTagName("intent-filter")
                 for (j in 0 until filters.length) {
                     val filter = filters.item(j) as? org.w3c.dom.Element ?: continue
