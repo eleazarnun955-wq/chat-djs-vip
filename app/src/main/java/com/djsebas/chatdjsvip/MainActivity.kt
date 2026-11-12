@@ -13,6 +13,7 @@ import androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionSche
 import androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import java.util.Locale
+import kotlinx.coroutines.delay
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import org.json.JSONArray
@@ -387,6 +388,19 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var isLoading by remember { mutableStateOf(false) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var searchText by remember { mutableStateOf("") }
+    var currentPositionMs by remember { mutableIntStateOf(0) }
+    var durationMs by remember { mutableIntStateOf(0) }
+    var seekPositionMs by remember { mutableFloatStateOf(0f) }
+    var isSeeking by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentUri, isPlaying, isLoading) {
+        while (currentUri != null && isPlaying && !isLoading) {
+            if (!isSeeking) {
+                currentPositionMs = runCatching { player?.currentPosition ?: currentPositionMs }.getOrDefault(currentPositionMs)
+            }
+            delay(400)
+        }
+    }
 
     val filteredTracks = tracks.filter { uriString ->
         val uri = Uri.parse(uriString)
@@ -413,6 +427,10 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         currentTitle = null
         isPlaying = false
         isLoading = false
+        currentPositionMs = 0
+        durationMs = 0
+        seekPositionMs = 0f
+        isSeeking = false
     }
 
     fun playTrack(uriString: String, title: String) {
@@ -425,12 +443,16 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 player = mp
                 mp.setDataSource(context, Uri.parse(uriString))
                 mp.setOnPreparedListener {
+                    durationMs = it.duration.coerceAtLeast(0)
+                    currentPositionMs = 0
+                    seekPositionMs = 0f
                     isLoading = false
                     isPlaying = true
                     it.start()
                 }
                 mp.setOnCompletionListener {
                     runCatching { it.seekTo(0) }
+                    currentPositionMs = durationMs
                     isPlaying = false
                     isLoading = false
                 }
@@ -538,13 +560,53 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         }
         if (currentTitle != null) {
             Surface(color = Color(0xFF174C43), shape = RoundedCornerShape(14.dp)) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.GraphicEq, null, tint = Accent)
-                    Text(currentTitle.orEmpty(), Modifier.weight(1f).padding(start = 8.dp), maxLines = 1)
-                    if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Accent, strokeWidth = 2.dp)
-                    TextButton(onClick = { stopPlayback() }) { Text("Detener") }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.GraphicEq, null, tint = Accent)
+                        Text(currentTitle.orEmpty(), Modifier.weight(1f).padding(start = 8.dp), maxLines = 1, fontWeight = FontWeight.Medium)
+                        if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Accent, strokeWidth = 2.dp)
+                        IconButton(onClick = {
+                            if (isPlaying) {
+                                runCatching { player?.pause() }
+                                isPlaying = false
+                            } else if (!isLoading) {
+                                runCatching { player?.start() }
+                                isPlaying = true
+                            }
+                        }, enabled = !isLoading) {
+                            Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (isPlaying) "Pausar" else "Reproducir", tint = Accent)
+                        }
+                        TextButton(onClick = { stopPlayback() }) { Text("Detener") }
+                    }
+                    Slider(
+                        value = if (isSeeking) seekPositionMs else currentPositionMs.toFloat(),
+                        onValueChange = {
+                            seekPositionMs = it
+                            isSeeking = true
+                        },
+                        onValueChangeFinished = {
+                            val target = seekPositionMs.toInt().coerceIn(0, durationMs.coerceAtLeast(0))
+                            runCatching { player?.seekTo(target) }
+                            currentPositionMs = target
+                            isSeeking = false
+                        },
+                        valueRange = 0f..durationMs.coerceAtLeast(1).toFloat(),
+                        enabled = durationMs > 0 && !isLoading,
+                        modifier = Modifier.fillMaxWidth().height(30.dp),
+                        colors = SliderDefaults.colors(thumbColor = Accent, activeTrackColor = Accent)
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(formatAudioTime(if (isSeeking) seekPositionMs.toInt() else currentPositionMs), color = Color.White, fontSize = 11.sp)
+                        Text(formatAudioTime(durationMs), color = Muted, fontSize = 11.sp)
+                    }
                 }
             }
         }
     }
+}
+
+
+private fun formatAudioTime(milliseconds: Int): String {
+    val totalSeconds = (milliseconds.coerceAtLeast(0) / 1000)
+    return String.format(Locale.getDefault(), "%d:%02d", totalSeconds / 60, totalSeconds % 60)
 }
