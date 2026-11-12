@@ -13,7 +13,7 @@ data class ProjectZipImportResult(val files: List<ImportedProjectFile>, val erro
 object ProjectZipPathPolicy {
     fun safePath(path: String): String? {
         if (path.isBlank() || path.contains('\u0000')) return null
-        val normalized = path.replace('\\\\', '/')
+        val normalized = path.replace('\\', '/')
         if (normalized.startsWith('/') || normalized.contains(':')) return null
         val parts = normalized.split('/')
         if (parts.any { it.isBlank() || it == "." || it == ".." }) return null
