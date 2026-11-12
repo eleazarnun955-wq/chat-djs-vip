@@ -104,36 +104,53 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             status = "Proyecto «$cleanName» guardado en este dispositivo."
         }
     }
-    val loadProject: (String) -> Unit = { name ->
-        if (name != projectName) {
-            val snapshot = importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }
-            saveProject(snapshot)
-        }
-        val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
-            .getOrElse { org.json.JSONObject() }
-        val project = projectsJson.optJSONObject(name)
-        if (project != null) {
-            projectName = name
-            target = project.optString("target", "Android")
-            preferences.edit().putString("app_studio_target", target).apply()
-            studioHistory.clear()
-            val history = project.optJSONArray("history") ?: JSONArray()
-            for (i in 0 until history.length()) studioHistory.add(history.optString(i))
-            result = project.optString("result", "")
-            importedFiles = buildList {
-                val files = project.optJSONArray("files") ?: JSONArray()
-                for (i in 0 until files.length()) {
-                    val item = files.optJSONObject(i) ?: continue
-                    add(ImportedProjectFile(item.optString("path"), item.optString("content")))
+    LaunchedEffect(editorContent, selectedFilePath, projectName, importedFiles) {
+        val path = selectedFilePath
+        val storedContent = importedFiles.firstOrNull { it.path == path }?.content
+        if (path != null && storedContent != null && editorContent != storedContent && projectName.isNotBlank()) {
+            kotlinx.coroutines.delay(800)
+            if (selectedFilePath == path && editorContent != storedContent) {
+                val snapshot = importedFiles.map { file ->
+                    if (file.path == path) file.copy(content = editorContent) else file
                 }
+                importedFiles = snapshot
+                saveProject(snapshot)
+                status = "Guardado automático: $path"
             }
-            selectedFilePath = importedFiles.firstOrNull()?.path
-            editorContent = importedFiles.firstOrNull()?.content.orEmpty()
-            preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString())
-                .putString("app_studio_last_result", result).apply()
-            status = "Proyecto «$name» abierto."
+        }
+    }
+    val loadProject: (String) -> Unit = { name ->
+        if (name == projectName) {
+            status = "«$name» ya es el proyecto abierto; se conservaron tus cambios."
         } else {
-            status = "No se pudo abrir el proyecto guardado."
+            val snapshot = importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }
+            if (importedFiles.isNotEmpty()) saveProject(snapshot)
+            val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
+                .getOrElse { org.json.JSONObject() }
+            val project = projectsJson.optJSONObject(name)
+            if (project != null) {
+                projectName = name
+                target = project.optString("target", "Android")
+                preferences.edit().putString("app_studio_target", target).apply()
+                studioHistory.clear()
+                val history = project.optJSONArray("history") ?: JSONArray()
+                for (i in 0 until history.length()) studioHistory.add(history.optString(i))
+                result = project.optString("result", "")
+                importedFiles = buildList {
+                    val files = project.optJSONArray("files") ?: JSONArray()
+                    for (i in 0 until files.length()) {
+                        val item = files.optJSONObject(i) ?: continue
+                        add(ImportedProjectFile(item.optString("path"), item.optString("content")))
+                    }
+                }
+                selectedFilePath = importedFiles.firstOrNull()?.path
+                editorContent = importedFiles.firstOrNull()?.content.orEmpty()
+                preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString())
+                    .putString("app_studio_last_result", result).apply()
+                status = "Proyecto «$name» abierto."
+            } else {
+                status = "No se pudo abrir el proyecto guardado."
+            }
         }
     }
     val deleteProject: (String) -> Unit = { name ->
