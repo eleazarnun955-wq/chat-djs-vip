@@ -238,6 +238,11 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                         Text(msg, Modifier.weight(1f).padding(2.dp), color = Color.White, fontSize = 15.sp)
                         if (msg.startsWith("VIP:")) {
                             IconButton(onClick = {
+                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Respuesta CHAT DJ'S VIP", msg.removePrefix("VIP:").trim()))
+                                android.widget.Toast.makeText(context, "Respuesta copiada", android.widget.Toast.LENGTH_SHORT).show()
+                            }) { Icon(Icons.Default.ContentCopy, "Copiar respuesta", tint = Accent) }
+                            IconButton(onClick = {
                                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(Intent.EXTRA_TEXT, msg.removePrefix("VIP:").trim())
