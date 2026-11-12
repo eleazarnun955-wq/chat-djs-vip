@@ -439,9 +439,23 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var playbackSpeed by remember { mutableFloatStateOf(prefs.getFloat("audio_playback_speed", 1f).coerceIn(0.5f, 2f)) }
     var repeatCurrent by remember { mutableStateOf(prefs.getBoolean("audio_repeat_current", false)) }
     var autoPlayNext by remember { mutableStateOf(prefs.getBoolean("audio_auto_play_next", true)) }
-    var playbackQueue by remember { mutableStateOf<List<String>>(emptyList()) }
+    var playbackQueue by remember {
+        val savedQueue = prefs.getString("audio_playback_queue", null)
+        mutableStateOf(
+            if (savedQueue.isNullOrBlank()) emptyList()
+            else runCatching {
+                val json = JSONArray(savedQueue)
+                restorePlaybackQueue(List(json.length()) { index -> json.getString(index) }, tracks)
+            }.getOrDefault(emptyList())
+        )
+    }
     var shuffleEnabled by remember { mutableStateOf(prefs.getBoolean("audio_shuffle_enabled", false)) }
     var showQueueDialog by remember { mutableStateOf(false) }
+    LaunchedEffect(playbackQueue) {
+        val json = JSONArray()
+        playbackQueue.forEach { json.put(it) }
+        prefs.edit().putString("audio_playback_queue", json.toString()).apply()
+    }
     val latestCurrentUri by rememberUpdatedState(currentUri)
     val latestPlaybackQueue by rememberUpdatedState(playbackQueue)
 
