@@ -12,4 +12,4 @@ Aplicación Android independiente en español: asistente conversacional y Escuel
 - GitHub Actions compila `app-debug.apk` al actualizar `main` o al ejecutar manualmente el workflow `Android APK`.
 - El workflow adjunta el APK como artefacto y también lo publica como archivo individual en GitHub Releases.
 - En Android, descarga el archivo `.apk` desde la sección **Assets** de la versión publicada; no descargues el ZIP del artefacto de Actions.
-- La versión 3 usa `applicationId` independiente `com.djsebas.chatdjsvip.v3`.
+- La versión 3.2.0 usa `applicationId` independiente `com.djsebas.chatdjsvip.v320`, por lo que se instala como aplicación separada. Incluye historial local, respuestas por Gemini opcional, entrada por voz, análisis de imágenes, lectura en voz alta, compartir respuestas, Escuela DJ y biblioteca musical local.
