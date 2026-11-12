@@ -199,11 +199,35 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             runCatching { speechLauncher.launch(intent) }
         }
     }
+    val exportChatLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri != null) {
+            val content = messages.joinToString("\n\n")
+            val saved = runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { output ->
+                    output.write(content.toByteArray(Charsets.UTF_8))
+                } ?: error("No se pudo abrir el archivo")
+            }.isSuccess
+            android.widget.Toast.makeText(
+                context,
+                if (saved) "Conversación exportada correctamente" else "No se pudo guardar la conversación",
+                android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     val chatListState = rememberLazyListState()
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) chatListState.animateScrollToItem(messages.lastIndex)
     }
     Column(modifier.fillMaxSize().padding(14.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(
+                onClick = { exportChatLauncher.launch("Chat-DJs-VIP.txt") },
+                enabled = messages.isNotEmpty()
+            ) {
+                Icon(Icons.Default.FileDownload, contentDescription = null, tint = Accent)
+                Text("  Exportar conversación")
+            }
+        }
         LazyColumn(state = chatListState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(messages) { msg ->
                 val user = msg.startsWith("Tú:")
