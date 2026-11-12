@@ -421,7 +421,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var searchText by remember { mutableStateOf("") }
     var showFavoritesOnly by remember { mutableStateOf(false) }
-    var sortAscending by remember { mutableStateOf(true) }
+    var sortAscending by remember { mutableStateOf(prefs.getBoolean("audio_sort_ascending", true)) }
     var favorites by remember {
         val saved = prefs.getString("favorite_audio_tracks", null)
         mutableStateOf(
@@ -436,9 +436,9 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var durationMs by remember { mutableIntStateOf(0) }
     var seekPositionMs by remember { mutableFloatStateOf(0f) }
     var isSeeking by remember { mutableStateOf(false) }
-    var playbackSpeed by remember { mutableFloatStateOf(1f) }
-    var repeatCurrent by remember { mutableStateOf(false) }
-    var autoPlayNext by remember { mutableStateOf(true) }
+    var playbackSpeed by remember { mutableFloatStateOf(prefs.getFloat("audio_playback_speed", 1f).coerceIn(0.5f, 2f)) }
+    var repeatCurrent by remember { mutableStateOf(prefs.getBoolean("audio_repeat_current", false)) }
+    var autoPlayNext by remember { mutableStateOf(prefs.getBoolean("audio_auto_play_next", true)) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -604,7 +604,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     label = { Text("Favoritas (${favorites.count { it in tracks }})") },
                     leadingIcon = { Icon(Icons.Default.Favorite, null) }
                 )
-                TextButton(onClick = { sortAscending = !sortAscending }) {
+                TextButton(onClick = { sortAscending = !sortAscending; prefs.edit().putBoolean("audio_sort_ascending", sortAscending).apply() }) {
                     Icon(Icons.Default.SortByAlpha, contentDescription = null, tint = Accent)
                     Text(if (sortAscending) "A–Z" else "Z–A")
                 }
@@ -722,8 +722,8 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                             Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (isPlaying) "Pausar" else "Reproducir", tint = Accent)
                         }
                         TextButton(onClick = { stopPlayback() }) { Text("Detener") }
-                        TextButton(onClick = { repeatCurrent = !repeatCurrent }) { Text(if (repeatCurrent) "Repetir: Sí" else "Repetir: No", color = if (repeatCurrent) Accent else Color.White) }
-                        TextButton(onClick = { autoPlayNext = !autoPlayNext }) { Text(if (autoPlayNext) "Siguiente: Sí" else "Siguiente: No", color = if (autoPlayNext) Accent else Color.White) }
+                        TextButton(onClick = { repeatCurrent = !repeatCurrent; prefs.edit().putBoolean("audio_repeat_current", repeatCurrent).apply() }) { Text(if (repeatCurrent) "Repetir: Sí" else "Repetir: No", color = if (repeatCurrent) Accent else Color.White) }
+                        TextButton(onClick = { autoPlayNext = !autoPlayNext; prefs.edit().putBoolean("audio_auto_play_next", autoPlayNext).apply() }) { Text(if (autoPlayNext) "Siguiente: Sí" else "Siguiente: No", color = if (autoPlayNext) Accent else Color.White) }
                     }
                     Slider(
                         value = if (isSeeking) seekPositionMs else currentPositionMs.toFloat(),
@@ -753,6 +753,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                             onValueChange = { playbackSpeed = it },
                             onValueChangeFinished = {
                                 runCatching { player?.setPlaybackParams(PlaybackParams().setSpeed(playbackSpeed)) }
+                                prefs.edit().putFloat("audio_playback_speed", playbackSpeed).apply()
                             },
                             valueRange = 0.5f..2f,
                             steps = 5,
