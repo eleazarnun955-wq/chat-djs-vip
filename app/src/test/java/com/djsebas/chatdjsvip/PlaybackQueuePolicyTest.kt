@@ -5,6 +5,20 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class PlaybackQueuePolicyTest {
+    @Test fun restoresSavedQueueWithoutRemovedTracksOrDuplicates() {
+        assertEquals(
+            listOf("track-b", "track-a"),
+            restorePlaybackQueue(
+                listOf("track-b", "removed", "track-b", "track-a"),
+                listOf("track-a", "track-b")
+            )
+        )
+    }
+
+    @Test fun restoresAnEmptyQueueWhenNothingWasSaved() {
+        assertEquals(emptyList<String>(), restorePlaybackQueue(emptyList(), listOf("track-a")))
+    }
+
     @Test fun followsTheCurrentExplicitQueueOrder() {
         assertEquals(
             "track-c",
