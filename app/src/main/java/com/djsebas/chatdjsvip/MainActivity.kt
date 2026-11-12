@@ -441,6 +441,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var autoPlayNext by remember { mutableStateOf(prefs.getBoolean("audio_auto_play_next", true)) }
     var playbackQueue by remember { mutableStateOf<List<String>>(emptyList()) }
     var shuffleEnabled by remember { mutableStateOf(prefs.getBoolean("audio_shuffle_enabled", false)) }
+    var showQueueDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -750,6 +751,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.GraphicEq, null, tint = Accent)
                         Text(currentTitle.orEmpty(), Modifier.weight(1f).padding(start = 8.dp), maxLines = 1, fontWeight = FontWeight.Medium)
+                        TextButton(onClick = { showQueueDialog = true }) { Text("Cola", color = Accent) }
                         if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Accent, strokeWidth = 2.dp)
                         IconButton(onClick = {
                             if (currentPositionMs > 3000) {
@@ -821,6 +823,50 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+    if (showQueueDialog) {
+        val activeQueue = playbackQueue.filter { it in sortedTracks }.ifEmpty { sortedTracks }
+        AlertDialog(
+            onDismissRequest = { showQueueDialog = false },
+            title = { Text("Cola de reproducción (${activeQueue.size})") },
+            text = {
+                if (activeQueue.isEmpty()) {
+                    Text("No hay canciones disponibles en la cola.")
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 360.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(activeQueue) { queuedUri ->
+                            val queued = Uri.parse(queuedUri)
+                            val queuedTitle = runCatching {
+                                context.contentResolver.query(queued, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                                }
+                            }.getOrNull() ?: queued.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                            Surface(
+                                color = if (queuedUri == currentUri) Color(0xFF174C43) else Panel,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    playbackQueue = activeQueue
+                                    playTrack(queuedUri, queuedTitle)
+                                    showQueueDialog = false
+                                }
+                            ) {
+                                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        if (queuedUri == currentUri) Icons.Default.Equalizer else Icons.Default.MusicNote,
+                                        contentDescription = null,
+                                        tint = Accent
+                                    )
+                                    Text(queuedTitle, Modifier.weight(1f).padding(start = 10.dp), maxLines = 1)
+                                    if (queuedUri == currentUri) Text("Ahora", color = Accent, fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showQueueDialog = false }) { Text("Cerrar") } },
+            containerColor = Panel
+        )
     }
 }
 
