@@ -18,15 +18,30 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.json.JSONArray
 
 @Composable
 fun AppStudioScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val preferences = remember(context) {
+        context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE)
+    }
     var requirements by remember { mutableStateOf("") }
     var target by remember { mutableStateOf("Android") }
     var result by remember { mutableStateOf("") }
     var isGenerating by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Describe la aplicación que quieres crear.") }
+    val studioHistory = remember(context) {
+        val stored = preferences.getString("app_studio_history", null)
+        mutableStateListOf<String>().apply {
+            if (!stored.isNullOrBlank()) {
+                runCatching {
+                    val json = JSONArray(stored)
+                    for (i in 0 until json.length()) add(json.getString(i))
+                }
+            }
+        }
+    }
 
     val saveLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/markdown")
@@ -51,7 +66,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             Text("ESTUDIO DE APLICACIONES", fontSize = 21.sp, fontWeight = FontWeight.Bold)
         }
         Text(
-            "Describe tu idea y recibe una propuesta técnica y código inicial organizado por archivos. Para generar necesitas configurar Gemini en Ajustes del Chat.",
+            "Diseña aplicaciones Android y web, genera código organizado y continúa trabajando sobre el mismo proyecto. Para generar necesitas configurar Gemini en Ajustes del Chat.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 13.sp
         )
@@ -65,24 +80,30 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             onValueChange = { requirements = it },
             modifier = Modifier.fillMaxWidth(),
             minLines = 4,
-            label = { Text("Describe tu aplicación") },
-            placeholder = { Text("Ejemplo: una app para organizar eventos, con usuarios, calendario, fotografías y notificaciones…") }
+            label = { Text(if (studioHistory.isEmpty()) "Describe tu aplicación" else "Nueva instrucción o mejora") },
+            placeholder = { Text(if (studioHistory.isEmpty()) "Ejemplo: una app para organizar eventos, con usuarios, calendario, fotografías y notificaciones…" else "Ejemplo: agrega inicio de sesión y conserva el diseño anterior…") }
         )
         Button(
             onClick = {
-                isGenerating = true
-                result = ""
-                status = "Diseñando la solución…"
+                val userRequest = requirements.trim()
                 val prompt = """MODO_CREADOR_APPS:
 Plataforma solicitada: $target.
-Requisitos del usuario:
-${requirements.trim()}
+${if (studioHistory.isEmpty()) "Requisitos iniciales del usuario:" else "Nueva instrucción del usuario para continuar el proyecto existente:"}
+$userRequest
 
-Entrega una solución de desarrollo realista. Primero resume el alcance y la arquitectura. Después organiza la respuesta por archivos, indicando la ruta exacta y proporcionando el contenido completo de cada archivo esencial. Incluye dependencias, versiones compatibles, configuración, instrucciones de compilación y pruebas. Para Android usa Kotlin y Jetpack Compose salvo que exista una razón técnica clara para otra opción. Para web indica framework, estructura y comandos. Incluye manejo de errores, accesibilidad y seguridad. No inventes servicios ya conectados ni afirmes que compilaste o probaste algo. Si faltan datos imprescindibles, declara los supuestos y pregunta solo lo necesario. Si la respuesta es demasiado extensa, divide el trabajo en entregas numeradas y no omitas archivos esenciales."""
-                GeminiClient.reply(context, prompt, emptyList()) { answer ->
+Entrega una solución de desarrollo realista. Primero resume el alcance y la arquitectura. Después organiza la respuesta por archivos, indicando la ruta exacta y proporcionando el contenido completo de cada archivo esencial. Incluye dependencias, versiones compatibles, configuración, instrucciones de compilación y pruebas. Para Android usa Kotlin y Jetpack Compose salvo que exista una razón técnica clara para otra opción. Para web indica framework, estructura y comandos. Incluye manejo de errores, accesibilidad y seguridad. No inventes servicios ya conectados ni afirmes que compilaste o probaste algo. Si faltan datos imprescindibles, declara los supuestos y pregunta solo lo necesario. Si la respuesta es demasiado extensa, divide el trabajo en entregas numeradas y no omitas archivos esenciales. Si ya existe un proyecto en el historial, conserva sus decisiones y archivos previos y entrega cambios compatibles, indicando exactamente qué archivos reemplazar o crear."""
+                isGenerating = true
+                result = ""
+                status = if (studioHistory.isEmpty()) "Diseñando la solución…" else "Continuando el proyecto con su contexto anterior…"
+                val historySnapshot = studioHistory.toList()
+                GeminiClient.reply(context, prompt, historySnapshot) { answer ->
+                    studioHistory.add("Tú: $prompt")
+                    studioHistory.add("VIP: $answer")
+                    while (studioHistory.size > 24) studioHistory.removeAt(0)
+                    preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString()).apply()
                     result = answer
                     isGenerating = false
-                    status = if (answer.startsWith("Para generar código")) "Falta configurar la clave de IA." else "Borrador generado. Revisa el código antes de compilar."
+                    status = if (answer.startsWith("Para generar código")) "Falta configurar la clave de IA." else "Respuesta generada y contexto del proyecto guardado."
                 }
             },
             enabled = requirements.isNotBlank() && !isGenerating,
@@ -95,7 +116,21 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
             } else {
                 Icon(Icons.Default.Code, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Diseñar y generar aplicación")
+                Text(if (studioHistory.isEmpty()) "Diseñar y generar aplicación" else "Continuar / mejorar proyecto")
+            }
+        }
+        if (studioHistory.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Contexto guardado: ${studioHistory.size / 2} intercambios", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                TextButton(onClick = {
+                    studioHistory.clear()
+                    preferences.edit().remove("app_studio_history").apply()
+                    result = ""
+                    status = "Contexto del estudio borrado. Puedes iniciar otro proyecto."
+                }, enabled = !isGenerating) { Text("Nuevo proyecto") }
             }
         }
         Text(status, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
@@ -136,7 +171,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 }
             }
             Text(
-                "Este módulo genera especificaciones y código. La compilación, ejecución de pruebas y publicación automática requieren integrar un entorno de construcción seguro; todavía no se realizan desde esta pantalla.",
+                "Este módulo genera especificaciones y código y conserva el contexto para mejoras sucesivas. La compilación, ejecución de pruebas y publicación automática desde la app requieren integrar un entorno de construcción seguro; todavía no se realizan desde esta pantalla.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp
             )
