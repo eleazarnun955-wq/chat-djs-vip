@@ -36,6 +36,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     var projectName by remember { mutableStateOf("Mi proyecto") }
     var pendingDeleteProject by remember { mutableStateOf<String?>(null) }
     var importedFiles by remember { mutableStateOf<List<ImportedProjectFile>>(emptyList()) }
+    var selectedFilePath by remember { mutableStateOf<String?>(null) }
+    var editorContent by remember { mutableStateOf("") }
     var taskMode by remember { mutableStateOf("Crear") }
     val savedProjects = remember(context) {
         val stored = preferences.getString("app_studio_projects", null)
@@ -92,6 +94,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                     add(ImportedProjectFile(item.optString("path"), item.optString("content")))
                 }
             }
+            selectedFilePath = importedFiles.firstOrNull()?.path
+            editorContent = importedFiles.firstOrNull()?.content.orEmpty()
             preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString())
                 .putString("app_studio_last_result", result).apply()
             status = "Proyecto «$name» abierto."
@@ -114,6 +118,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             val imported = ProjectZipImporter.import(context, uri)
             if (imported.success) {
                 importedFiles = imported.files
+                selectedFilePath = imported.files.firstOrNull()?.path
+                editorContent = imported.files.firstOrNull()?.content.orEmpty()
                 status = "Se importaron ${imported.files.size} archivos. Se incluirán como contexto para las próximas mejoras."
             } else status = "No se pudo importar: ${imported.error}"
         }
@@ -170,9 +176,44 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             Text(if (importedFiles.isEmpty()) "Sin archivos importados" else "${importedFiles.size} archivos cargados", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         }
         if (importedFiles.isNotEmpty()) {
-            Text("Archivos del proyecto", fontWeight = FontWeight.SemiBold)
-            importedFiles.take(8).forEach { file -> Text("• ${file.path}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            if (importedFiles.size > 8) Text("Y ${importedFiles.size - 8} archivos más…", fontSize = 12.sp)
+            Text("Explorador y editor de archivos", fontWeight = FontWeight.SemiBold)
+            Text("Selecciona un archivo, edita su contenido y guarda los cambios en el proyecto.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                importedFiles.forEach { file ->
+                    TextButton(
+                        onClick = {
+                            selectedFilePath = file.path
+                            editorContent = file.content
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+                    ) {
+                        Text(if (selectedFilePath == file.path) "▸ ${file.path}" else file.path, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            }
+            selectedFilePath?.let { path ->
+                Text(path, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                OutlinedTextField(
+                    value = editorContent,
+                    onValueChange = { editorContent = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 8,
+                    maxLines = 24,
+                    label = { Text("Contenido del archivo") }
+                )
+                Button(onClick = {
+                    importedFiles = importedFiles.map { file ->
+                        if (file.path == path) file.copy(content = editorContent) else file
+                    }
+                    saveProject()
+                    status = "Cambios guardados en $path."
+                }, enabled = !isGenerating, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Code, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Guardar cambios del archivo")
+                }
+            }
         }
         Text("¿Qué tipo de aplicación quieres crear?", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
