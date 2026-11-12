@@ -442,6 +442,8 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var playbackQueue by remember { mutableStateOf<List<String>>(emptyList()) }
     var shuffleEnabled by remember { mutableStateOf(prefs.getBoolean("audio_shuffle_enabled", false)) }
     var showQueueDialog by remember { mutableStateOf(false) }
+    val latestCurrentUri by rememberUpdatedState(currentUri)
+    val latestPlaybackQueue by rememberUpdatedState(playbackQueue)
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -471,6 +473,10 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             }
         }.getOrNull() ?: uri.lastPathSegment ?: "Audio").lowercase(Locale.ROOT)
     }.let { if (sortAscending) it else it.reversed() }
+    val latestAllSortedTracks by rememberUpdatedState(allSortedTracks)
+    val latestRepeatCurrent by rememberUpdatedState(repeatCurrent)
+    val latestAutoPlayNext by rememberUpdatedState(autoPlayNext)
+    val latestPlaybackSpeed by rememberUpdatedState(playbackSpeed)
 
     val sortedTracks = filteredTracks.sortedBy { uriString ->
         val uri = Uri.parse(uriString)
@@ -523,13 +529,13 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     durationMs = it.duration.coerceAtLeast(0)
                     currentPositionMs = 0
                     seekPositionMs = 0f
-                    runCatching { it.setPlaybackParams(PlaybackParams().setSpeed(playbackSpeed)) }
+                    runCatching { it.setPlaybackParams(PlaybackParams().setSpeed(latestPlaybackSpeed)) }
                     isLoading = false
                     isPlaying = true
                     it.start()
                 }
                 mp.setOnCompletionListener {
-                    if (repeatCurrent) {
+                    if (latestRepeatCurrent) {
                         runCatching {
                             it.seekTo(0)
                             it.start()
@@ -538,25 +544,28 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         seekPositionMs = 0f
                         isPlaying = true
                     } else {
-                        val completedUri = currentUri
-                        val activeQueue = playbackQueue.filter { it in allSortedTracks }.ifEmpty { allSortedTracks }
-                        val nextIndex = activeQueue.indexOf(completedUri) + 1
-                        val nextUri = activeQueue.getOrNull(nextIndex)
-                        if (autoPlayNext && nextUri != null) {
+                        val nextUri = nextTrackAfterCompletion(
+                            completedUri = latestCurrentUri,
+                            queue = latestPlaybackQueue,
+                            library = latestAllSortedTracks,
+                            autoPlayNext = latestAutoPlayNext
+                        )
+                        if (nextUri != null) {
                             val next = Uri.parse(nextUri)
                             val nextTitle = runCatching {
                                 context.contentResolver.query(next, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                                     if (cursor.moveToFirst()) cursor.getString(0) else null
                                 }
                             }.getOrNull() ?: next.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                            // No sobrescribir el estado de carga de la siguiente pista.
                             playTrack(nextUri, nextTitle)
                         } else {
                             runCatching { it.seekTo(0) }
                             currentPositionMs = durationMs
                             isPlaying = false
+                            isLoading = false
                         }
                     }
-                    isLoading = false
                 }
                 mp.setOnErrorListener { _, _, _ ->
                     isLoading = false
