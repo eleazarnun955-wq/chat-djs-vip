@@ -188,11 +188,28 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 studioHistory.add("Tú: $prompt")
                 studioHistory.add("VIP: $answer")
                 while (studioHistory.size > 24) studioHistory.removeAt(0)
-                preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString())
-                    .putString("app_studio_last_result", answer).putString("app_studio_target", target).apply()
+                val updatedHistory = JSONArray(studioHistory.toList())
+                val projectStore = runCatching {
+                    org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty())
+                }.getOrElse { org.json.JSONObject() }
+                val cleanProjectName = projectName.trim().take(60).ifBlank { "Mi proyecto" }
+                projectStore.put(cleanProjectName, org.json.JSONObject()
+                    .put("name", cleanProjectName)
+                    .put("target", target)
+                    .put("history", updatedHistory)
+                    .put("result", answer))
+                if (!savedProjects.contains(cleanProjectName)) savedProjects.add(cleanProjectName)
+                preferences.edit()
+                    .putString("app_studio_history", updatedHistory.toString())
+                    .putString("app_studio_last_result", answer)
+                    .putString("app_studio_target", target)
+                    .putString("app_studio_projects", JSONArray(savedProjects.toList()).toString())
+                    .putString("app_studio_project_data", projectStore.toString())
+                    .apply()
+                projectName = cleanProjectName
                 result = answer
                 isGenerating = false
-                status = if (answer.startsWith("Para generar código")) "Falta configurar la clave de IA." else "Respuesta generada y contexto del proyecto guardado."
+                status = if (answer.startsWith("Para generar código")) "Falta configurar la clave de IA." else "Avance guardado automáticamente en «$cleanProjectName»."
             }
         }, enabled = requirements.isNotBlank() && !isGenerating, modifier = Modifier.fillMaxWidth()) {
             if (isGenerating) {
