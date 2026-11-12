@@ -66,7 +66,7 @@ object ProjectZipExporter {
     }
 
     private fun sanitize(candidate: String?, index: Int, language: String): String {
-        val raw = candidate.orEmpty().replace('\\\\', '/').trim().trimStart('/')
+        val raw = candidate.orEmpty().replace('\\', '/').trim().trimStart('/')
         val safe = raw.split('/').filter { it.isNotBlank() && it != "." && it != ".." }
             .joinToString("/") { segment -> segment.replace(Regex("[^A-Za-z0-9._-]"), "_") }
         if (safe.isNotBlank()) return safe
