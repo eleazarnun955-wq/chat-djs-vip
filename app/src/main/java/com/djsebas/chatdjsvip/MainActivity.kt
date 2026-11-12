@@ -99,6 +99,7 @@ fun ChatDjsVipApp() {
                 NavigationBarItem(selected = section == "Chat", onClick = { section = "Chat" }, icon = { Icon(Icons.Default.Chat, null) }, label = { Text("Chat") })
                 NavigationBarItem(selected = section == "Escuela DJ", onClick = { section = "Escuela DJ" }, icon = { Icon(Icons.Default.School, null) }, label = { Text("Escuela DJ") })
                 NavigationBarItem(selected = section == "Biblioteca", onClick = { section = "Biblioteca" }, icon = { Icon(Icons.Default.LibraryMusic, null) }, label = { Text("Biblioteca") })
+                NavigationBarItem(selected = section == "Crear apps", onClick = { section = "Crear apps" }, icon = { Icon(Icons.Default.Code, null) }, label = { Text("Crear apps") })
             }
         }) { padding ->
             when (section) {
@@ -115,7 +116,8 @@ fun ChatDjsVipApp() {
                     }
                 }, Modifier.padding(padding))
                 "Escuela DJ" -> SchoolScreen(Modifier.padding(padding))
-                else -> LibraryScreen(Modifier.padding(padding))
+                "Biblioteca" -> LibraryScreen(Modifier.padding(padding))
+                else -> AppStudioScreen(Modifier.padding(padding))
             }
         }
         if (showClearChat) {
