@@ -28,8 +28,11 @@ object ProjectZipExporter {
                     matches.forEachIndexed { index, match ->
                         val code = match.groupValues[2].trimEnd()
                         if (code.isNotBlank()) {
-                            val before = markdown.substring(0, match.range.first)
-                            val declared = pathLine.findAll(before).lastOrNull()?.groupValues?.get(1)?.trim()
+                            // Only inspect text since the previous code block. This prevents a
+                            // missing path declaration from accidentally reusing an older file path.
+                            val previousEnd = if (index == 0) 0 else matches[index - 1].range.last + 1
+                            val betweenBlocks = markdown.substring(previousEnd, match.range.first)
+                            val declared = pathLine.findAll(betweenBlocks).lastOrNull()?.groupValues?.get(1)?.trim()
                             val info = match.groupValues[1].trim().split(Regex("\\s+")).firstOrNull().orEmpty()
                             val candidate = declared?.takeIf { it.isNotBlank() } ?: info.takeIf { it.contains("/") }
                             val safePath = sanitize(candidate, index, info)
@@ -63,7 +66,7 @@ object ProjectZipExporter {
     }
 
     private fun sanitize(candidate: String?, index: Int, language: String): String {
-        val raw = candidate.orEmpty().replace('\\', '/').trim().trimStart('/')
+        val raw = candidate.orEmpty().replace('\\\\', '/').trim().trimStart('/')
         val safe = raw.split('/').filter { it.isNotBlank() && it != "." && it != ".." }
             .joinToString("/") { segment -> segment.replace(Regex("[^A-Za-z0-9._-]"), "_") }
         if (safe.isNotBlank()) return safe
