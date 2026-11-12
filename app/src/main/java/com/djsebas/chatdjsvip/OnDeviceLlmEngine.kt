@@ -84,7 +84,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
 
             val message = result.fold(
                 onSuccess = { "Modelo importado correctamente. Se cargará al enviar la primera pregunta." },
-                onFailure = { "No se pudo importar el modelo: \${it.message ?: "error de archivo"}" }
+                onFailure = { "No se pudo importar el modelo: ${it.message ?: "error de archivo"}" }
             )
             tempFile?.takeIf { it.exists() }?.delete()
             mainHandler.post { onResult(result.isSuccess, message) }
