@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -88,6 +89,16 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             status = "No se pudo abrir el proyecto guardado."
         }
     }
+    val deleteProject: (String) -> Unit = { name ->
+        val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
+            .getOrElse { org.json.JSONObject() }
+        projectsJson.remove(name)
+        savedProjects.remove(name)
+        preferences.edit().putString("app_studio_projects", JSONArray(savedProjects.toList()).toString())
+            .putString("app_studio_project_data", projectsJson.toString()).apply()
+        if (projectName == name) projectName = "Mi proyecto"
+        status = "Proyecto guardado «$name» eliminado. El contenido que tienes abierto no se borró."
+    }
     val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
         if (uri != null) {
             val saved = runCatching {
@@ -124,7 +135,12 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             Text("Mis proyectos guardados", fontWeight = FontWeight.SemiBold)
             Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 savedProjects.forEach { name ->
-                    FilterChip(selected = projectName == name, onClick = { loadProject(name) }, label = { Text(name) })
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        FilterChip(selected = projectName == name, onClick = { loadProject(name) }, label = { Text(name) })
+                        IconButton(onClick = { deleteProject(name) }, enabled = !isGenerating) {
+                            Icon(Icons.Default.Delete, contentDescription = "Eliminar proyecto $name")
+                        }
+                    }
                 }
             }
         }
