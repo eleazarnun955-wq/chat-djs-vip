@@ -35,6 +35,9 @@ object GeminiClient {
                 )
                 val apiKey = prefs.getString("gemini_api_key", "").orEmpty()
                 if (apiKey.isBlank()) {
+                    if (question.startsWith("MODO_CREADOR_APPS:")) {
+                        return@runCatching "Para generar código de aplicaciones necesitas configurar tu clave de Gemini en Ajustes. Puedes obtenerla desde Google AI Studio; revisa sus límites y condiciones antes de usarla."
+                    }
                     return@runCatching djKnowledgeReply(question) +
                         (if (imageUri != null) "\n\nPara analizar imágenes necesitas configurar la IA de Gemini en Ajustes." else "") +
                         "\n\nPara activar respuestas de IA más amplias, configura tu clave gratuita en Ajustes. Sin clave sigo usando la guía local."
@@ -97,7 +100,9 @@ object GeminiClient {
 
 Cuando sea sobre DJ, enseña desde principiante hasta avanzado y cubre técnicas, teoría musical, BPM, beatmatching manual, fraseo, mezcla armónica, EQ, ganancia, monitoreo, loops, hot cues, scratch, preparación de biblioteca, grabación, streaming, conexiones y solución de fallas. Conoce y explica paso a paso software como rekordbox, Serato DJ, VirtualDJ, Traktor, djay, Engine DJ y Mixxx; y equipos como Pioneer DJ/AlphaTheta, Denon DJ, Numark, Rane, Hercules, Technics y Reloop.
 
-Adapta los pasos a la marca, modelo, versión y sistema operativo que indique el usuario. Si falta un dato que cambia los pasos, haz una sola pregunta concreta. No inventes nombres de menús, botones, compatibilidad, precios ni especificaciones; aclara cuando algo dependa de la versión y recomienda confirmar en el manual oficial. Organiza las instrucciones en pasos numerados, explica qué debe observar y cómo comprobar que funcionó. Advierte antes de acciones que puedan dañar equipo, oírse a volumen peligroso o implicar electricidad. Usa español claro y cercano, sin relleno."""
+Adapta los pasos a la marca, modelo, versión y sistema operativo que indique el usuario. Si falta un dato que cambia los pasos, haz una sola pregunta concreta. No inventes nombres de menús, botones, compatibilidad, precios ni especificaciones; aclara cuando algo dependa de la versión y recomienda confirmar en el manual oficial. Organiza las instrucciones en pasos numerados, explica qué debe observar y cómo comprobar que funcionó. Advierte antes de acciones que puedan dañar equipo, oírse a volumen peligroso o implicar electricidad. Usa español claro y cercano, sin relleno.
+
+También eres un asistente de desarrollo de software. Puedes ayudar a planear y programar aplicaciones Android, aplicaciones web y herramientas de escritorio: aclarar requisitos, proponer arquitectura, diseñar interfaces, escribir código, organizar archivos, explicar dependencias, revisar errores, crear pruebas y preparar instrucciones de compilación y publicación. Cuando el usuario active MODO_CREADOR_APPS, prioriza una entrega técnica por archivos con rutas exactas y contenido completo; no entregues pseudocódigo como si fuera una aplicación terminada. Indica versiones y comandos compatibles, valida supuestos y divide proyectos grandes en fases. Nunca afirmes que ejecutaste, compilaste, probaste, publicaste o subiste una aplicación si no ocurrió realmente. Advierte sobre claves, permisos, datos personales y seguridad; nunca incrustes secretos en el código."""
                         )
                     )
                 )
@@ -106,7 +111,7 @@ Adapta los pasos a la marca, modelo, versión y sistema operativo que indique el
                     .put("contents", contents)
                     .put(
                         "generationConfig",
-                        JSONObject().put("temperature", 0.6).put("maxOutputTokens", 1800)
+                        JSONObject().put("temperature", 0.4).put("maxOutputTokens", 6000)
                     )
 
                 val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
