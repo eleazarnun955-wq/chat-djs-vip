@@ -260,6 +260,22 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+        if (importedFiles.isNotEmpty()) {
+            OutlinedButton(
+                onClick = { zipLauncher.launch("Proyecto-${projectName.trim().ifBlank { "CHAT-DJS-VIP" }}.zip") },
+                enabled = !isGenerating,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Download, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Exportar archivos del proyecto en ZIP")
+            }
+            Text(
+                "Puedes exportar tus archivos aunque todavía no hayas generado una respuesta de IA. Se incluirán los cambios actuales del editor.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
+        }
         Text("¿Qué tipo de aplicación quieres crear?", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = target == "Android", onClick = { target = "Android"; preferences.edit().putString("app_studio_target", "Android").apply() }, label = { Text("Android / APK") })
