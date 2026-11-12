@@ -96,7 +96,7 @@ object ProjectZipImporter {
                                 require(fileBytes <= MAX_TEXT_FILE_BYTES) {
                                     "Un archivo de texto supera el límite de 512 KB: $safePath"
                                 }
-                                bytes.toString(Charsets.UTF_8).takeUnless { it.contains('\\u0000') }
+                                bytes.toString(Charsets.UTF_8).takeUnless { it.contains('\u0000') }
                             }
                             if (content != null) {
                                 imported.add(ImportedProjectFile(safePath, content))
