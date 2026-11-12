@@ -105,6 +105,10 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         }
     }
     val loadProject: (String) -> Unit = { name ->
+        if (name != projectName) {
+            val snapshot = importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }
+            saveProject(snapshot)
+        }
         val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
             .getOrElse { org.json.JSONObject() }
         val project = projectsJson.optJSONObject(name)
@@ -202,7 +206,11 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             }
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-            OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed")) }, enabled = !isGenerating) {
+            OutlinedButton(onClick = {
+                val snapshot = importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }
+                if (isEditorDirty) saveProject(snapshot)
+                importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed"))
+            }, enabled = !isGenerating) {
                 Icon(Icons.Default.Download, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Importar proyecto ZIP")
             }
             Text(if (importedFiles.isEmpty()) "Sin archivos importados" else "${importedFiles.size} archivos cargados", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
@@ -446,6 +454,8 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Contexto guardado: ${studioHistory.size / 2} intercambios", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 TextButton(onClick = {
+                    val snapshot = importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }
+                    if (isEditorDirty) saveProject(snapshot)
                     studioHistory.clear()
                     preferences.edit().remove("app_studio_history").remove("app_studio_last_result").apply()
                     result = ""
@@ -489,7 +499,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
             AlertDialog(
                 onDismissRequest = { pendingDeleteFilePath = null },
                 title = { Text("Eliminar archivo") },
-                text = { Text("¿Eliminar $path del proyecto abierto? Esta acción no se puede deshacer.") },
+                text = { Text(if (isEditorDirty && selectedFilePath == path) "Este archivo tiene cambios sin guardar. Si confirmas, se eliminarán junto con el archivo. ¿Continuar?" else "¿Eliminar $path del proyecto abierto? Esta acción no se puede deshacer.") },
                 confirmButton = {
                     TextButton(onClick = {
                         val updatedFiles = importedFiles.filterNot { it.path == path }
