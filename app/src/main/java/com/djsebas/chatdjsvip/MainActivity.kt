@@ -719,11 +719,24 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                                 } else {
                                     playbackQueue = if (shuffleEnabled) {
                                         listOf(uriString) + allSortedTracks.filter { it != uriString }.shuffled()
+                                    } else if (uriString in playbackQueue) {
+                                        playbackQueue
                                     } else emptyList()
                                     playTrack(uriString, title)
                                 }
                             }) {
                                 Icon(if (currentUri == uriString && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, if (isPlaying) "Pausar" else "Reproducir", tint = Accent)
+                            }
+                            IconButton(onClick = {
+                                val updatedQueue = addTrackToPlaybackQueue(currentUri, playbackQueue, allSortedTracks, uriString)
+                                if (uriString == currentUri || uriString in playbackQueue) {
+                                    android.widget.Toast.makeText(context, "La canción ya está en la cola", android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    playbackQueue = updatedQueue
+                                    android.widget.Toast.makeText(context, "Canción añadida a la cola", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Default.Add, contentDescription = "Añadir a la cola", tint = Accent)
                             }
                             IconButton(onClick = { toggleFavorite(uriString) }) {
                                 Icon(
