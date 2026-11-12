@@ -85,4 +85,22 @@ android {
         val report = ProjectBuildValidator.validate(files)
         assertTrue(report.checks.any { it.title == "Rutas de archivos únicas" && !it.passed })
     }
+    @Test fun rejectsProjectWhenAppModuleIsNotIncluded() {
+        val files = completeProject().map { file ->
+            if (file.path == "settings.gradle.kts") file.copy(content = """rootProject.name = "Demo" """) else file
+        }
+        val report = ProjectBuildValidator.validate(files)
+        assertFalse(report.readyForBuildAttempt)
+        assertTrue(report.checks.any { it.title == "Módulo app incluido" && !it.passed })
+    }
+
+    @Test fun rejectsProjectWhenAndroidApplicationPluginIsMissing() {
+        val files = completeProject().map { file ->
+            if (file.path == "app/build.gradle.kts") file.copy(content = """plugins { id("org.jetbrains.kotlin.jvm") }""") else file
+        }
+        val report = ProjectBuildValidator.validate(files)
+        assertFalse(report.readyForBuildAttempt)
+        assertTrue(report.checks.any { it.title == "Plugin Android" && !it.passed })
+    }
+
 }
