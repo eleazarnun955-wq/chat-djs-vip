@@ -112,7 +112,7 @@ object ProjectBuildValidator {
             Regex("""include\s*\(\s*["']app["']""").containsMatchIn(settingsText)
         val appBuildText = appBuildPath?.let(::content).orEmpty()
         val androidPlugin = Regex("""com\.android\.application""").containsMatchIn(appBuildText) ||
-            Regex("""(?i)alias\s*\(\s*libs\.plugins\.[A-Za-z0-9_.-]*android[A-Za-z0-9_.-]*application[A-Za-z0-9_.-]*\s*\)""").containsMatchIn(appBuildText) ||
+            Regex("""(?i)alias\s*\(\s*libs\.plugins\.(?=[^)]*android)(?=[^)]*application)[^)]*\)""").containsMatchIn(appBuildText) ||
             appBuildText.contains("com.android.tools.build:gradle")
         val namespace = Regex("""namespace\s*=\s*["']([^"']+)["']""").find(appBuildText)?.groupValues?.getOrNull(1)
         val applicationId = Regex("""applicationId\s*=\s*["']([^"']+)["']""").find(appBuildText)?.groupValues?.getOrNull(1)
