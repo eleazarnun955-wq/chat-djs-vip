@@ -3,11 +3,27 @@ package com.djsebas.chatdjsvip
 import android.content.Context
 import android.net.Uri
 import java.io.ByteArrayOutputStream
+import android.util.Base64
 import java.util.zip.ZipInputStream
 
 data class ImportedProjectFile(val path: String, val content: String)
 data class ProjectZipImportResult(val files: List<ImportedProjectFile>, val error: String = "") {
     val success: Boolean get() = files.isNotEmpty() && error.isBlank()
+}
+
+object ProjectZipBinaryFileCodec {
+    private const val PREFIX = "base64:"
+
+    fun isGradleWrapperJar(path: String): Boolean =
+        path.replace('\\', '/').equals("gradle/wrapper/gradle-wrapper.jar", ignoreCase = true)
+
+    fun encodeGradleWrapper(bytes: ByteArray): String =
+        PREFIX + Base64.encodeToString(bytes, Base64.NO_WRAP)
+
+    fun decodeGradleWrapper(path: String, content: String): ByteArray? {
+        if (!isGradleWrapperJar(path) || !content.startsWith(PREFIX)) return null
+        return runCatching { Base64.decode(content.removePrefix(PREFIX), Base64.DEFAULT) }.getOrNull()
+    }
 }
 
 object ProjectZipPathPolicy {
@@ -67,18 +83,25 @@ object ProjectZipImporter {
                             output.write(buffer, 0, read)
                         }
                         val safePath = ProjectZipPathPolicy.safePath(entry.name)
-                        if (safePath != null && ProjectZipPathPolicy.isTextFile(safePath)) {
-                            require(fileBytes <= MAX_TEXT_FILE_BYTES) {
-                                "Un archivo de texto supera el límite de 512 KB: $safePath"
-                            }
+                        if (safePath != null &&
+                            (ProjectZipPathPolicy.isTextFile(safePath) || ProjectZipBinaryFileCodec.isGradleWrapperJar(safePath))
+                        ) {
                             require(seenPaths.add(safePath.lowercase())) {
                                 "El ZIP contiene rutas duplicadas: $safePath"
                             }
-                            val text = output.toByteArray().toString(Charsets.UTF_8)
-                            if (!text.contains('\u0000')) {
-                                imported.add(ImportedProjectFile(safePath, text))
+                            val bytes = output.toByteArray()
+                            val content = if (ProjectZipBinaryFileCodec.isGradleWrapperJar(safePath)) {
+                                ProjectZipBinaryFileCodec.encodeGradleWrapper(bytes)
+                            } else {
+                                require(fileBytes <= MAX_TEXT_FILE_BYTES) {
+                                    "Un archivo de texto supera el límite de 512 KB: $safePath"
+                                }
+                                bytes.toString(Charsets.UTF_8).takeUnless { it.contains('\\u0000') }
+                            }
+                            if (content != null) {
+                                imported.add(ImportedProjectFile(safePath, content))
                                 require(imported.size <= MAX_IMPORTED_FILES) {
-                                    "El proyecto supera el límite de 100 archivos de texto."
+                                    "El proyecto supera el límite de 100 archivos importados."
                                 }
                             }
                         }
