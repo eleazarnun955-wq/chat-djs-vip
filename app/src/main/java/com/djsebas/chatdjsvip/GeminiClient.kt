@@ -217,12 +217,12 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
                 throw error
             } catch (error: java.net.SocketTimeoutException) {
                 if (attempt == MAX_RETRIES) {
-                    throw IllegalStateException("La conexión con " + model + " agotó el tiempo de espera después de varios intentos.")
+                    throw GeminiHttpException(504, "La conexión con " + model + " agotó el tiempo de espera después de varios intentos.")
                 }
                 Thread.sleep(1000L shl attempt)
             } catch (error: IOException) {
                 if (attempt == MAX_RETRIES) {
-                    throw IllegalStateException("No se pudo conectar con Google: " + (error.message ?: "error de red"))
+                    throw GeminiHttpException(503, "No se pudo conectar con Google: " + (error.message ?: "error de red"))
                 }
                 Thread.sleep(1000L shl attempt)
             } finally {
