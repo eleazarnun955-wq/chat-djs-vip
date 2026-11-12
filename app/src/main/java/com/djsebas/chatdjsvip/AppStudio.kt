@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -31,7 +32,50 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     }
     var requirements by remember { mutableStateOf("") }
     var target by remember { mutableStateOf(preferences.getString("app_studio_target", "Android") ?: "Android") }
+    var projectName by remember { mutableStateOf("Mi proyecto") }
     var taskMode by remember { mutableStateOf("Crear") }
+    val savedProjects = remember(context) {
+        val stored = preferences.getString("app_studio_projects", null)
+        mutableStateListOf<String>().apply {
+            if (!stored.isNullOrBlank()) runCatching {
+                val json = JSONArray(stored)
+                for (i in 0 until json.length()) add(json.getString(i))
+            }
+        }
+    }
+    val saveProject: () -> Unit = {
+        val cleanName = projectName.trim().take(60)
+        if (cleanName.isNotBlank()) {
+            val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
+                .getOrElse { org.json.JSONObject() }
+            val project = org.json.JSONObject().put("name", cleanName).put("target", target)
+                .put("history", JSONArray(studioHistory.toList())).put("result", result)
+            projectsJson.put(cleanName, project)
+            if (!savedProjects.contains(cleanName)) savedProjects.add(cleanName)
+            preferences.edit().putString("app_studio_projects", JSONArray(savedProjects.toList()).toString())
+                .putString("app_studio_project_data", projectsJson.toString()).apply()
+            status = "Proyecto «$cleanName» guardado en este dispositivo."
+        }
+    }
+    val loadProject: (String) -> Unit = { name ->
+        val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
+            .getOrElse { org.json.JSONObject() }
+        val project = projectsJson.optJSONObject(name)
+        if (project != null) {
+            projectName = name
+            target = project.optString("target", "Android")
+            preferences.edit().putString("app_studio_target", target).apply()
+            studioHistory.clear()
+            val history = project.optJSONArray("history") ?: JSONArray()
+            for (i in 0 until history.length()) studioHistory.add(history.optString(i))
+            result = project.optString("result", "")
+            preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString())
+                .putString("app_studio_last_result", result).apply()
+            status = "Proyecto «$name» abierto."
+        } else {
+            status = "No se pudo abrir el proyecto guardado."
+        }
+    }
     var result by remember { mutableStateOf(preferences.getString("app_studio_last_result", "").orEmpty()) }
     var isGenerating by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Describe la aplicación que quieres crear.") }
@@ -70,6 +114,20 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             "Diseña aplicaciones Android y web, genera código organizado y continúa trabajando sobre el mismo proyecto. Puedes guardar la propuesta como documento o empaquetar los bloques de código en un ZIP.",
             color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp
         )
+        Text("Proyecto actual", fontWeight = FontWeight.SemiBold)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            OutlinedTextField(value = projectName, onValueChange = { projectName = it }, modifier = Modifier.weight(1f),
+                singleLine = true, label = { Text("Nombre del proyecto") })
+            Button(onClick = saveProject, enabled = !isGenerating && projectName.isNotBlank()) { Text("Guardar") }
+        }
+        if (savedProjects.isNotEmpty()) {
+            Text("Mis proyectos guardados", fontWeight = FontWeight.SemiBold)
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                savedProjects.forEach { name ->
+                    FilterChip(selected = projectName == name, onClick = { loadProject(name) }, label = { Text(name) })
+                }
+            }
+        }
         Text("¿Qué tipo de aplicación quieres crear?", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = target == "Android", onClick = { target = "Android"; preferences.edit().putString("app_studio_target", "Android").apply() }, label = { Text("Android / APK") })
