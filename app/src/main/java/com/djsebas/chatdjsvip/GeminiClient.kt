@@ -123,14 +123,14 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
                 var code = 0
                 var responseText = ""
                 // Un reintento breve solo para errores HTTP transitorios.
-                // Los timeouts de red se muestran enseguida.
+                // La respuesta del modelo puede tardar; se permite hasta 90 segundos de lectura.
                 for (attempt in 0..1) {
                     var connection: HttpURLConnection? = null
                     try {
                         connection = (url.openConnection() as HttpURLConnection).apply {
                             requestMethod = "POST"
-                            connectTimeout = 10000
-                            readTimeout = 25000
+                            connectTimeout = 20000
+                            readTimeout = 90000
                             doOutput = true
                             setRequestProperty("Content-Type", "application/json")
                             setRequestProperty("x-goog-api-key", apiKey)
