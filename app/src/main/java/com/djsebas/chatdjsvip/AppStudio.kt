@@ -63,14 +63,14 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             }
         }
     }
-    val saveProject: () -> Unit = {
+    val saveProject: (List<ImportedProjectFile>) -> Unit = { filesToSave ->
         val cleanName = projectName.trim().take(60)
         if (cleanName.isNotBlank()) {
             val projectsJson = runCatching { org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty()) }
                 .getOrElse { org.json.JSONObject() }
             val project = org.json.JSONObject().put("name", cleanName).put("target", target)
                 .put("history", JSONArray(studioHistory.toList())).put("result", result)
-                .put("files", JSONArray().apply { importedFiles.forEach { put(org.json.JSONObject().put("path", it.path).put("content", it.content)) } })
+                .put("files", JSONArray().apply { filesToSave.forEach { put(org.json.JSONObject().put("path", it.path).put("content", it.content)) } })
             projectsJson.put(cleanName, project)
             if (!savedProjects.contains(cleanName)) savedProjects.add(cleanName)
             preferences.edit().putString("app_studio_projects", JSONArray(savedProjects.toList()).toString())
@@ -160,7 +160,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             OutlinedTextField(value = projectName, onValueChange = { projectName = it }, modifier = Modifier.weight(1f),
                 singleLine = true, label = { Text("Nombre del proyecto") })
-            Button(onClick = saveProject, enabled = !isGenerating && projectName.isNotBlank()) { Text("Guardar") }
+            Button(onClick = { saveProject(importedFiles) }, enabled = !isGenerating && projectName.isNotBlank()) { Text("Guardar") }
         }
         if (savedProjects.isNotEmpty()) {
             Text("Mis proyectos guardados", fontWeight = FontWeight.SemiBold)
@@ -204,11 +204,12 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                         importedFiles.any { it.path == path } -> status = "Ese archivo ya existe."
                         importedFiles.size >= 100 -> status = "El proyecto alcanzó el límite de 100 archivos."
                         else -> {
-                            importedFiles = importedFiles + ImportedProjectFile(path, "")
+                            val updatedFiles = importedFiles + ImportedProjectFile(path, "")
+                            importedFiles = updatedFiles
                             selectedFilePath = path
                             editorContent = ""
                             newFilePath = ""
-                            saveProject()
+                            saveProject(updatedFiles)
                             status = "Archivo $path creado y guardado en el proyecto."
                         }
                     }
@@ -239,10 +240,11 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                     label = { Text("Contenido del archivo") }
                 )
                 Button(onClick = {
-                    importedFiles = importedFiles.map { file ->
+                    val updatedFiles = importedFiles.map { file ->
                         if (file.path == path) file.copy(content = editorContent) else file
                     }
-                    saveProject()
+                    importedFiles = updatedFiles
+                    saveProject(updatedFiles)
                     status = "Cambios guardados en $path."
                 }, enabled = !isGenerating, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Code, contentDescription = null)
@@ -412,12 +414,13 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 text = { Text("¿Eliminar $path del proyecto abierto? Esta acción no se puede deshacer.") },
                 confirmButton = {
                     TextButton(onClick = {
-                        importedFiles = importedFiles.filterNot { it.path == path }
+                        val updatedFiles = importedFiles.filterNot { it.path == path }
+                        importedFiles = updatedFiles
                         if (selectedFilePath == path) {
-                            selectedFilePath = importedFiles.firstOrNull()?.path
-                            editorContent = importedFiles.firstOrNull()?.content.orEmpty()
+                            selectedFilePath = updatedFiles.firstOrNull()?.path
+                            editorContent = updatedFiles.firstOrNull()?.content.orEmpty()
                         }
-                        saveProject()
+                        saveProject(updatedFiles)
                         status = "Archivo $path eliminado del proyecto."
                         pendingDeleteFilePath = null
                     }) { Text("Eliminar") }
