@@ -43,6 +43,18 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             }
         }
     }
+    var result by remember { mutableStateOf(preferences.getString("app_studio_last_result", "").orEmpty()) }
+    var isGenerating by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("Describe la aplicación que quieres crear.") }
+    val studioHistory = remember(context) {
+        val stored = preferences.getString("app_studio_history", null)
+        mutableStateListOf<String>().apply {
+            if (!stored.isNullOrBlank()) runCatching {
+                val json = JSONArray(stored)
+                for (i in 0 until json.length()) add(json.getString(i))
+            }
+        }
+    }
     val saveProject: () -> Unit = {
         val cleanName = projectName.trim().take(60)
         if (cleanName.isNotBlank()) {
@@ -74,18 +86,6 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             status = "Proyecto «$name» abierto."
         } else {
             status = "No se pudo abrir el proyecto guardado."
-        }
-    }
-    var result by remember { mutableStateOf(preferences.getString("app_studio_last_result", "").orEmpty()) }
-    var isGenerating by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("Describe la aplicación que quieres crear.") }
-    val studioHistory = remember(context) {
-        val stored = preferences.getString("app_studio_history", null)
-        mutableStateListOf<String>().apply {
-            if (!stored.isNullOrBlank()) runCatching {
-                val json = JSONArray(stored)
-                for (i in 0 until json.length()) add(json.getString(i))
-            }
         }
     }
     val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
