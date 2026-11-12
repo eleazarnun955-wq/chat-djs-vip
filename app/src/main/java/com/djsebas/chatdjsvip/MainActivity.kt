@@ -463,6 +463,15 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             (!showFavoritesOnly || uriString in favorites)
     }
 
+    val allSortedTracks = tracks.sortedBy { uriString ->
+        val uri = Uri.parse(uriString)
+        (runCatching {
+            context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull() ?: uri.lastPathSegment ?: "Audio").lowercase(Locale.ROOT)
+    }.let { if (sortAscending) it else it.reversed() }
+
     val sortedTracks = filteredTracks.sortedBy { uriString ->
         val uri = Uri.parse(uriString)
         (runCatching {
@@ -530,7 +539,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         isPlaying = true
                     } else {
                         val completedUri = currentUri
-                        val activeQueue = playbackQueue.filter { it in sortedTracks }.ifEmpty { sortedTracks }
+                        val activeQueue = playbackQueue.filter { it in allSortedTracks }.ifEmpty { allSortedTracks }
                         val nextIndex = activeQueue.indexOf(completedUri) + 1
                         val nextUri = activeQueue.getOrNull(nextIndex)
                         if (autoPlayNext && nextUri != null) {
@@ -563,7 +572,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     }
 
     fun playAdjacentTrack(direction: Int) {
-        val activeQueue = playbackQueue.filter { it in sortedTracks }.ifEmpty { sortedTracks }
+        val activeQueue = playbackQueue.filter { it in allSortedTracks }.ifEmpty { allSortedTracks }
         val currentIndex = activeQueue.indexOf(currentUri)
         val targetUri = activeQueue.getOrNull(currentIndex + direction) ?: return
         val target = Uri.parse(targetUri)
@@ -630,8 +639,8 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     prefs.edit().putBoolean("audio_shuffle_enabled", shuffleEnabled).apply()
                     val activeUri = currentUri
                     playbackQueue = if (shuffleEnabled) {
-                        val remaining = sortedTracks.filter { it != activeUri }.shuffled()
-                        if (activeUri != null && activeUri in sortedTracks) listOf(activeUri) + remaining else remaining
+                        val remaining = allSortedTracks.filter { it != activeUri }.shuffled()
+                        if (activeUri != null && activeUri in allSortedTracks) listOf(activeUri) + remaining else remaining
                     } else emptyList()
                     if (shuffleEnabled && activeUri == null) {
                         playbackQueue.firstOrNull()?.let { firstUri ->
@@ -700,7 +709,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                                     isPlaying = true
                                 } else {
                                     playbackQueue = if (shuffleEnabled) {
-                                        listOf(uriString) + sortedTracks.filter { it != uriString }.shuffled()
+                                        listOf(uriString) + allSortedTracks.filter { it != uriString }.shuffled()
                                     } else emptyList()
                                     playTrack(uriString, title)
                                 }
@@ -825,7 +834,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         }
     }
     if (showQueueDialog) {
-        val activeQueue = playbackQueue.filter { it in sortedTracks }.ifEmpty { sortedTracks }
+        val activeQueue = playbackQueue.filter { it in allSortedTracks }.ifEmpty { allSortedTracks }
         AlertDialog(
             onDismissRequest = { showQueueDialog = false },
             title = { Text("Cola de reproducción (${activeQueue.size})") },
