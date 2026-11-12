@@ -118,7 +118,7 @@ fun ChatDjsVipApp() {
                 title = { Text("Limpiar conversación") },
                 text = { Text("¿Quieres borrar el historial guardado de este chat? Esta acción no se puede deshacer.") },
                 confirmButton = { TextButton(onClick = {
-                    messages = listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.")
+                    messages = listOf("¡Hola! Soy CHAT DJ'S VIP. Importa el modelo local para activar conocimientos generales sin conexión.")
                     showClearChat = false
                 }) { Text("Borrar historial") } },
                 dismissButton = { TextButton(onClick = { showClearChat = false }) { Text("Cancelar") } },
