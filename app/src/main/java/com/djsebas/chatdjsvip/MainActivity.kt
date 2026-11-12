@@ -440,6 +440,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var repeatCurrent by remember { mutableStateOf(prefs.getBoolean("audio_repeat_current", false)) }
     var autoPlayNext by remember { mutableStateOf(prefs.getBoolean("audio_auto_play_next", true)) }
     var playbackQueue by remember { mutableStateOf<List<String>>(emptyList()) }
+    var shuffleEnabled by remember { mutableStateOf(prefs.getBoolean("audio_shuffle_enabled", false)) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -528,7 +529,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         isPlaying = true
                     } else {
                         val completedUri = currentUri
-                        val activeQueue = playbackQueue.ifEmpty { sortedTracks }
+                        val activeQueue = playbackQueue.filter { it in sortedTracks }.ifEmpty { sortedTracks }
                         val nextIndex = activeQueue.indexOf(completedUri) + 1
                         val nextUri = activeQueue.getOrNull(nextIndex)
                         if (autoPlayNext && nextUri != null) {
@@ -611,18 +612,26 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     Text(if (sortAscending) "A–Z" else "Z–A")
                 }
                 TextButton(onClick = {
-                    playbackQueue = sortedTracks.shuffled()
-                    playbackQueue.firstOrNull()?.let { firstUri ->
-                        val first = Uri.parse(firstUri)
-                        val firstTitle = runCatching {
-                            context.contentResolver.query(first, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                                if (cursor.moveToFirst()) cursor.getString(0) else null
-                            }
-                        }.getOrNull() ?: first.lastPathSegment?.substringAfterLast('/') ?: "Audio"
-                        playTrack(firstUri, firstTitle)
+                    shuffleEnabled = !shuffleEnabled
+                    prefs.edit().putBoolean("audio_shuffle_enabled", shuffleEnabled).apply()
+                    val activeUri = currentUri
+                    playbackQueue = if (shuffleEnabled) {
+                        val remaining = sortedTracks.filter { it != activeUri }.shuffled()
+                        if (activeUri != null && activeUri in sortedTracks) listOf(activeUri) + remaining else remaining
+                    } else emptyList()
+                    if (shuffleEnabled && activeUri == null) {
+                        playbackQueue.firstOrNull()?.let { firstUri ->
+                            val first = Uri.parse(firstUri)
+                            val firstTitle = runCatching {
+                                context.contentResolver.query(first, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                                }
+                            }.getOrNull() ?: first.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                            playTrack(firstUri, firstTitle)
+                        }
                     }
                 }) {
-                    Text("Aleatorio")
+                    Text(if (shuffleEnabled) "Aleatorio: Sí" else "Aleatorio: No")
                 }
             }
             OutlinedTextField(
@@ -676,6 +685,9 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                                     runCatching { player?.start() }
                                     isPlaying = true
                                 } else {
+                                    playbackQueue = if (shuffleEnabled) {
+                                        listOf(uriString) + sortedTracks.filter { it != uriString }.shuffled()
+                                    } else emptyList()
                                     playTrack(uriString, title)
                                 }
                             }) {
