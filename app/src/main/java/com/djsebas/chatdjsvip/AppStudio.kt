@@ -192,12 +192,15 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         )
         Button(onClick = {
             val userRequest = requirements.trim()
-            val filesContext = importedFiles.joinToString("\\n\\n") { file -> "Archivo existente: ${file.path}\\n```\\n${file.content}\\n```" }.take(120000)
+            val filesContext = importedFiles.joinToString("\n\n") { file -> "Archivo existente: ${file.path}\n```\n${file.content}\n```" }.take(120000)
             val prompt = """MODO_CREADOR_APPS:
 Plataforma solicitada: $target.
 Modo de trabajo: $taskMode.
 ${if (studioHistory.isEmpty()) "Requisitos iniciales del usuario:" else "Nueva instrucción del usuario para continuar el proyecto existente:"}
 $userRequest
+
+Archivos existentes importados; respeta estas rutas y conserva el código que no necesite cambios:
+$filesContext
 
 Modo Crear: genera estructura inicial funcional y archivos completos.
 Modo Mejorar: conserva funciones existentes y limita cambios a archivos necesarios.
