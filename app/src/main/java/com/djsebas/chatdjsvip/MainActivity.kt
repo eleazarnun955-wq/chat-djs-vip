@@ -437,6 +437,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var seekPositionMs by remember { mutableFloatStateOf(0f) }
     var isSeeking by remember { mutableStateOf(false) }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    var repeatCurrent by remember { mutableStateOf(false) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -515,9 +516,19 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     it.start()
                 }
                 mp.setOnCompletionListener {
-                    runCatching { it.seekTo(0) }
-                    currentPositionMs = durationMs
-                    isPlaying = false
+                    if (repeatCurrent) {
+                        runCatching {
+                            it.seekTo(0)
+                            it.start()
+                        }
+                        currentPositionMs = 0
+                        seekPositionMs = 0f
+                        isPlaying = true
+                    } else {
+                        runCatching { it.seekTo(0) }
+                        currentPositionMs = durationMs
+                        isPlaying = false
+                    }
                     isLoading = false
                 }
                 mp.setOnErrorListener { _, _, _ ->
@@ -697,6 +708,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                             Icon(if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, contentDescription = if (isPlaying) "Pausar" else "Reproducir", tint = Accent)
                         }
                         TextButton(onClick = { stopPlayback() }) { Text("Detener") }
+                        TextButton(onClick = { repeatCurrent = !repeatCurrent }) { Text(if (repeatCurrent) "Repetir: Sí" else "Repetir: No", color = if (repeatCurrent) Accent else Color.White) }
                     }
                     Slider(
                         value = if (isSeeking) seekPositionMs else currentPositionMs.toFloat(),
