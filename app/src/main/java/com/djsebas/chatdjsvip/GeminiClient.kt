@@ -111,7 +111,7 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
                     .put("contents", contents)
                     .put(
                         "generationConfig",
-                        JSONObject().put("temperature", 0.4).put("maxOutputTokens", 6000)
+                        JSONObject().put("maxOutputTokens", 6000)
                     )
 
                 val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
