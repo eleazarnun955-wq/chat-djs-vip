@@ -101,6 +101,7 @@ fun ChatDjsVipApp() {
                 NavigationBarItem(selected = section == "Escuela DJ", onClick = { section = "Escuela DJ" }, icon = { Icon(Icons.Default.School, null) }, label = { Text("Escuela DJ") })
                 NavigationBarItem(selected = section == "Biblioteca", onClick = { section = "Biblioteca" }, icon = { Icon(Icons.Default.LibraryMusic, null) }, label = { Text("Biblioteca") })
                 NavigationBarItem(selected = section == "Crear apps", onClick = { section = "Crear apps" }, icon = { Icon(Icons.Default.Code, null) }, label = { Text("Crear apps") })
+                NavigationBarItem(selected = false, onClick = { context.startActivity(Intent(context, DjProduccionesActivity::class.java)) }, icon = { Icon(Icons.Default.MusicNote, null) }, label = { Text("Producciones") })
             }
         }) { padding ->
             when (section) {
