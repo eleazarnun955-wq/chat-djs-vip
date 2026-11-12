@@ -1,5 +1,7 @@
 package com.djsebas.chatdjsvip
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
@@ -146,14 +149,26 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     Text(result, modifier = Modifier.padding(12.dp), fontSize = 13.sp)
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedButton(
                     onClick = { saveLauncher.launch("Proyecto-${target.lowercase()}.md") },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null)
-                    Spacer(Modifier.width(5.dp))
+                    Spacer(Modifier.width(4.dp))
                     Text("Guardar")
+                }
+                OutlinedButton(
+                    onClick = {
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Código y proyecto CHAT DJ'S VIP", result))
+                        status = "Código y contenido copiados al portapapeles."
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Copiar")
                 }
                 OutlinedButton(
                     onClick = {
@@ -166,8 +181,8 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Share, contentDescription = null)
-                    Spacer(Modifier.width(5.dp))
-                    Text("Compartir")
+                    Spacer(Modifier.width(4.dp))
+                    Text("Enviar")
                 }
             }
             Text(
