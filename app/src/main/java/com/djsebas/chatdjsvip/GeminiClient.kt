@@ -45,7 +45,7 @@ object GeminiClient {
 
                 val contents = JSONArray()
                 // Send only complete recent exchanges, so follow-up questions retain context.
-                val recent = previousMessages.takeLast(24)
+                val recent = previousMessages.takeLast(12)
                 var index = 0
                 while (index + 1 < recent.size) {
                     val userMessage = recent[index]
@@ -106,26 +106,31 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
                         )
                     )
                 )
+                val isAppCreation = question.startsWith("MODO_CREADOR_APPS:") ||
+                    question.contains("código", ignoreCase = true) ||
+                    question.contains("programa", ignoreCase = true) ||
+                    question.contains("aplicación", ignoreCase = true)
+                val maxOutputTokens = if (isAppCreation) 6000 else 2048
                 val body = JSONObject()
                     .put("systemInstruction", systemInstruction)
                     .put("contents", contents)
                     .put(
                         "generationConfig",
-                        JSONObject().put("maxOutputTokens", 6000)
+                        JSONObject().put("maxOutputTokens", maxOutputTokens)
                     )
 
                 val url = URL("https://generativelanguage.googleapis.com/v1beta/models/$MODEL:generateContent")
                 var code = 0
                 var responseText = ""
-                var lastNetworkError: java.io.IOException? = null
-                // Reintenta fallas transitorias de red/servidor; no insiste si la cuota gratuita se agotó.
-                for (attempt in 0..2) {
+                // Un reintento breve solo para errores HTTP transitorios.
+                // Los timeouts de red se muestran enseguida.
+                for (attempt in 0..1) {
                     var connection: HttpURLConnection? = null
                     try {
                         connection = (url.openConnection() as HttpURLConnection).apply {
                             requestMethod = "POST"
-                            connectTimeout = 20000
-                            readTimeout = 90000
+                            connectTimeout = 10000
+                            readTimeout = 25000
                             doOutput = true
                             setRequestProperty("Content-Type", "application/json")
                             setRequestProperty("x-goog-api-key", apiKey)
@@ -134,19 +139,14 @@ También eres un asistente de desarrollo de software. Puedes ayudar a planear y 
                         code = connection.responseCode
                         val stream = if (code in 200..299) connection.inputStream else connection.errorStream
                         responseText = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-                        lastNetworkError = null
                     } catch (error: java.io.IOException) {
-                        lastNetworkError = error
-                        if (attempt == 2) throw error
-                        Thread.sleep(1000L * (attempt + 1))
-                        continue
+                        throw error
                     } finally {
                         connection?.disconnect()
                     }
-                    if (code !in listOf(502, 503, 504) || attempt == 2) break
-                    Thread.sleep(1000L * (attempt + 1))
+                    if (code !in listOf(502, 503, 504) || attempt == 1) break
+                    Thread.sleep(500L)
                 }
-                if (lastNetworkError != null) throw lastNetworkError
 
                 if (code !in 200..299) {
                     val providerMessage = runCatching {
