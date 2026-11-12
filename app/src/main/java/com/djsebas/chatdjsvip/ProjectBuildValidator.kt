@@ -16,11 +16,11 @@ data class ProjectBuildReport(
 
 object ProjectBuildValidator {
     fun validate(files: List<ImportedProjectFile>): ProjectBuildReport {
-        val normalized = files.map { it.path.replace('\\\\', '/').lowercase() }
+        val normalized = files.map { it.path.replace('\\', '/').lowercase() }
         val paths = normalized.toSet()
         fun has(vararg candidates: String) = candidates.any { it.lowercase() in paths }
         fun content(path: String): String = files.firstOrNull {
-            it.path.replace('\\\\', '/').equals(path, ignoreCase = true)
+            it.path.replace('\\', '/').equals(path, ignoreCase = true)
         }?.content.orEmpty()
 
         val settingsPath = listOf("settings.gradle.kts", "settings.gradle").firstOrNull { it in paths }
@@ -48,11 +48,11 @@ object ProjectBuildValidator {
         val wrapper = wrapperScript && wrapperProperties && wrapperJar
         val properties = has("gradle.properties")
         val settingsText = settingsPath?.let(::content).orEmpty()
-        val includesApp = Regex("""include\\s*\\(?\\s*["']?:app["']?""")
-            .containsMatchIn(settingsText) || Regex("""include\\s*\\(\\s*["']app["']""")
+        val includesApp = Regex("""include\s*\(?\s*["']?:app["']?""")
+            .containsMatchIn(settingsText) || Regex("""include\s*\(\s*["']app["']""")
             .containsMatchIn(settingsText)
         val appBuildText = appBuildPath?.let(::content).orEmpty()
-        val androidPlugin = Regex("""com\\.android\\.application""")
+        val androidPlugin = Regex("""com\.android\.application""")
             .containsMatchIn(appBuildText) ||
             appBuildText.contains("com.android.tools.build:gradle")
         val duplicatePaths = normalized.size != paths.size
