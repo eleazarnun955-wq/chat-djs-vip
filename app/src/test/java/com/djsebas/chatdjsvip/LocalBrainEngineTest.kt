@@ -51,14 +51,16 @@ class LocalBrainEngineTest {
 
     @Test fun combinesMultipleLocalKnowledgeCardsForComparisons() {
         val answer = LocalBrainEngine.answerLocally("¿Qué diferencia hay entre WAV y MP3?", emptyList(), "")
-        assertTrue(answer.contains("MP3 es un formato"))
-        assertTrue(answer.contains("WAV suele almacenar"))
+        assertTrue("La comparación debe incluir la ficha MP3. Respuesta: $answer", answer.contains("MP3 es un formato"))
+        assertTrue("La comparación debe incluir la ficha WAV. Respuesta: $answer", answer.contains("WAV suele almacenar"))
     }
 
-    @Test fun providesHonestLimitsForOfflineGenerativeModels() {
-        val answer = LocalBrainEngine.answerLocally("¿Cómo funciona un LLM local offline?", emptyList(), "")
-        assertTrue(answer.contains("no equivale a un modelo generativo"))
-        assertTrue(answer.contains("RAM"))
+    @Test fun directsGeneralQuestionsToTheInstalledLocalModel() {
+        val question = "¿Cómo funciona un LLM local offline?"
+        assertEquals(LocalBrainIntent.UNKNOWN, LocalBrainEngine.classifyIntent(question))
+        val answer = LocalBrainEngine.answerLocally(question, emptyList(), "")
+        assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
+        assertTrue(answer.contains("Importa el archivo Qwen3-0.6B"))
     }
 
     @Test fun recognizesMoreAppDevelopmentRequests() {
