@@ -417,13 +417,13 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
             isGenerating = true
             result = ""
             status = when (taskMode) {
-                "Crear" -> "Diseñando la aplicación…"
-                "Mejorar" -> "Analizando mejoras compatibles…"
-                "Corregir" -> "Revisando posibles errores…"
-                else -> "Preparando configuración de compilación…"
+                "Crear" -> "Analizando el proyecto localmente…"
+                "Mejorar" -> "Revisando mejoras con el cerebro local…"
+                "Corregir" -> "Diagnosticando con el cerebro local…"
+                else -> "Revisando preparación de build localmente…"
             }
             val historySnapshot = studioHistory.toList()
-            GeminiClient.reply(context, prompt, historySnapshot) { answer ->
+            LocalBrainEngine.reply(context, prompt, historySnapshot) { answer ->
                 studioHistory.add("Tú: $prompt")
                 studioHistory.add("VIP: $answer")
                 while (studioHistory.size > 24) studioHistory.removeAt(0)
@@ -449,21 +449,21 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 projectName = cleanProjectName
                 result = answer
                 isGenerating = false
-                status = if (answer.startsWith("Para generar código")) "Falta configurar la clave de IA." else "Avance guardado automáticamente en «$cleanProjectName»."
+                status = "Análisis local guardado automáticamente en «$cleanProjectName»."
             }
         }, enabled = requirements.isNotBlank() && !isGenerating, modifier = Modifier.fillMaxWidth()) {
             if (isGenerating) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.width(8.dp))
-                Text("Generando…")
+                Text("Analizando…")
             } else {
                 Icon(Icons.Default.Code, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text(when (taskMode) {
-                    "Crear" -> "Diseñar y generar aplicación"
-                    "Mejorar" -> "Aplicar mejoras al proyecto"
-                    "Corregir" -> "Analizar y corregir errores"
-                    else -> "Preparar compilación y pruebas"
+                    "Crear" -> "Analizar aplicación localmente"
+                    "Mejorar" -> "Analizar mejoras localmente"
+                    "Corregir" -> "Diagnosticar errores localmente"
+                    else -> "Revisar build localmente"
                 })
             }
         }
