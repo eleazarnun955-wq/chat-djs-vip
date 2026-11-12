@@ -49,6 +49,12 @@ class LocalBrainEngineTest {
         assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Qué diferencia hay entre WAV y MP3?"))
     }
 
+    @Test fun combinesMultipleLocalKnowledgeCardsForComparisons() {
+        val answer = LocalBrainEngine.answerLocally("¿Qué diferencia hay entre WAV y MP3?", emptyList(), "")
+        assertTrue(answer.contains("MP3 es un formato"))
+        assertTrue(answer.contains("WAV suele almacenar"))
+    }
+
     @Test fun providesHonestLimitsForOfflineGenerativeModels() {
         val answer = LocalBrainEngine.answerLocally("¿Cómo funciona un LLM local offline?", emptyList(), "")
         assertTrue(answer.contains("no equivale a un modelo generativo"))
