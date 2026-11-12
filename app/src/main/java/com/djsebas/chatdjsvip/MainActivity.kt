@@ -386,6 +386,17 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var isPlaying by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
+    var searchText by remember { mutableStateOf("") }
+
+    val filteredTracks = tracks.filter { uriString ->
+        val uri = Uri.parse(uriString)
+        val title = runCatching {
+            context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull() ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+        title.contains(searchText.trim(), ignoreCase = true)
+    }
 
     fun saveTracks(updated: List<String>) {
         tracks = updated
@@ -457,6 +468,21 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             Icon(Icons.Default.LibraryMusic, null)
             Text("  Agregar música del teléfono")
         }
+        if (tracks.isNotEmpty()) {
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Buscar canción por nombre…") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Accent) },
+                trailingIcon = {
+                    if (searchText.isNotEmpty()) IconButton(onClick = { searchText = "" }) {
+                        Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                    }
+                }
+            )
+        }
         if (tracks.isEmpty()) {
             Surface(color = Panel, shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -466,9 +492,11 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 }
             }
         } else {
-            Text("${tracks.size} canción(es)", color = Accent, fontWeight = FontWeight.SemiBold)
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(tracks) { uriString ->
+            Text("${filteredTracks.size} de ${tracks.size} canción(es)", color = Accent, fontWeight = FontWeight.SemiBold)
+            if (filteredTracks.isEmpty()) {
+                Text("No hay canciones que coincidan con la búsqueda.", color = Muted, fontSize = 13.sp)
+            } else LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(filteredTracks) { uriString ->
                     val uri = Uri.parse(uriString)
                     val title = remember(uriString) {
                         runCatching {
