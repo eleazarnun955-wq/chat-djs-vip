@@ -38,6 +38,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     var importedFiles by remember { mutableStateOf<List<ImportedProjectFile>>(emptyList()) }
     var selectedFilePath by remember { mutableStateOf<String?>(null) }
     var editorContent by remember { mutableStateOf("") }
+    var newFilePath by remember { mutableStateOf("") }
+    var pendingDeleteFilePath by remember { mutableStateOf<String?>(null) }
     var taskMode by remember { mutableStateOf("Crear") }
     val savedProjects = remember(context) {
         val stored = preferences.getString("app_studio_projects", null)
@@ -178,6 +180,36 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         if (importedFiles.isNotEmpty()) {
             Text("Explorador y editor de archivos", fontWeight = FontWeight.SemiBold)
             Text("Selecciona un archivo, edita su contenido y guarda los cambios en el proyecto.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = newFilePath,
+                    onValueChange = { newFilePath = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    label = { Text("Ruta del archivo nuevo") },
+                    placeholder = { Text("app/src/Main.kt") }
+                )
+                Button(onClick = {
+                    val path = newFilePath.trim()
+                    val segments = path.split("/")
+                    val valid = path.isNotBlank() && !path.startsWith("/") && !path.contains("\\") &&
+                        segments.none { it.isBlank() || it == "." || it == ".." } &&
+                        !path.contains(":") && path.length <= 180
+                    when {
+                        !valid -> status = "Ruta no válida. Usa una ruta relativa sin .. ni segmentos vacíos."
+                        importedFiles.any { it.path == path } -> status = "Ese archivo ya existe."
+                        importedFiles.size >= 100 -> status = "El proyecto alcanzó el límite de 100 archivos."
+                        else -> {
+                            importedFiles = importedFiles + ImportedProjectFile(path, "")
+                            selectedFilePath = path
+                            editorContent = ""
+                            newFilePath = ""
+                            saveProject()
+                            status = "Archivo $path creado y guardado en el proyecto."
+                        }
+                    }
+                }, enabled = !isGenerating) { Text("Crear") }
+            }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 importedFiles.forEach { file ->
                     TextButton(
@@ -212,6 +244,15 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                     Icon(Icons.Default.Code, contentDescription = null)
                     Spacer(Modifier.width(6.dp))
                     Text("Guardar cambios del archivo")
+                }
+                OutlinedButton(
+                    onClick = { pendingDeleteFilePath = path },
+                    enabled = !isGenerating,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Eliminar este archivo")
                 }
             }
         }
@@ -312,6 +353,28 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     status = "Contexto del estudio borrado. Puedes iniciar otro proyecto."
                 }, enabled = !isGenerating) { Text("Nuevo proyecto") }
             }
+        }
+        pendingDeleteFilePath?.let { path ->
+            AlertDialog(
+                onDismissRequest = { pendingDeleteFilePath = null },
+                title = { Text("Eliminar archivo") },
+                text = { Text("¿Eliminar $path del proyecto abierto? Esta acción no se puede deshacer.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        importedFiles = importedFiles.filterNot { it.path == path }
+                        if (selectedFilePath == path) {
+                            selectedFilePath = importedFiles.firstOrNull()?.path
+                            editorContent = importedFiles.firstOrNull()?.content.orEmpty()
+                        }
+                        saveProject()
+                        status = "Archivo $path eliminado del proyecto."
+                        pendingDeleteFilePath = null
+                    }) { Text("Eliminar") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeleteFilePath = null }) { Text("Cancelar") }
+                }
+            )
         }
         pendingDeleteProject?.let { name ->
             AlertDialog(
