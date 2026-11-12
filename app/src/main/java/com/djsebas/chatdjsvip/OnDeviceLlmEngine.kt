@@ -119,7 +119,12 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 val path = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                     .getString(MODEL_PATH, null)
                     ?: error("Aún no has importado el modelo generativo local. Descarga el archivo .litertlm e impórtalo desde el botón «Importar modelo».")
-                ensureLoaded(app, path, previousMessages)
+                val historyForInitialization = previousMessages.toMutableList().apply {
+                    val currentQuestionIndex = indexOfLast { it == "Tú: $question" }
+                    if (currentQuestionIndex >= 0) removeAt(currentQuestionIndex)
+                    removeAll { it.contains("Consultando...") }
+                }
+                ensureLoaded(app, path, historyForInitialization)
                 checkNotNull(conversation).sendMessage(question).toString()
             }
             val answer = result.fold(
