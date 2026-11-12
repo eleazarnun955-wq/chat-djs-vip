@@ -69,7 +69,7 @@ object ProjectZipExporter {
                                 val info = match.groupValues[1].trim().split(Regex("\\s+")).firstOrNull().orEmpty()
                                 val candidate = declared?.takeIf { it.isNotBlank() } ?: info.takeIf { it.contains("/") }
                                 val safePath = sanitize(candidate.orEmpty(), index, info)
-                                addFile(safePath, (code + "\\n").toByteArray(Charsets.UTF_8))
+                                addFile(safePath, (code + "\n").toByteArray(Charsets.UTF_8))
                             }
                         }
                         if (matches.isEmpty()) {
@@ -86,7 +86,7 @@ object ProjectZipExporter {
     }
 
     private fun sanitize(candidate: String, index: Int, language: String): String {
-        val raw = candidate.replace('\\\\', '/').trim().trimStart('/')
+        val raw = candidate.replace("\\", "/").trim().trimStart('/')
         val safe = raw.split('/').filter { it.isNotBlank() && it != "." && it != ".." }
             .joinToString("/") { segment -> segment.replace(Regex("[^A-Za-z0-9._-]"), "_") }
         if (safe.isNotBlank()) return safe
