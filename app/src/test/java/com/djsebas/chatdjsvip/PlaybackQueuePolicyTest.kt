@@ -33,4 +33,32 @@ class PlaybackQueuePolicyTest {
     @Test fun returnsNullAtEndOfQueue() {
         assertNull(nextTrackAfterCompletion("track-b", listOf("track-a", "track-b"), listOf("track-a", "track-b"), true))
     }
+    @Test fun addToQueueKeepsCurrentTrackAndAppendsSelectedTrack() {
+        assertEquals(
+            listOf("track-a", "track-c"),
+            addTrackToPlaybackQueue("track-a", emptyList(), listOf("track-a", "track-b", "track-c"), "track-c")
+        )
+    }
+
+    @Test fun addToQueueDoesNotDuplicateAnExistingTrack() {
+        assertEquals(
+            listOf("track-a", "track-b"),
+            addTrackToPlaybackQueue("track-a", listOf("track-a", "track-b"), listOf("track-a", "track-b"), "track-b")
+        )
+    }
+
+    @Test fun addToQueueRejectsTracksOutsideTheLibrary() {
+        assertEquals(
+            listOf("track-a"),
+            addTrackToPlaybackQueue("track-a", emptyList(), listOf("track-a"), "removed")
+        )
+    }
+
+    @Test fun addToQueueStartsAQueueWhenNothingIsPlaying() {
+        assertEquals(
+            listOf("track-b"),
+            addTrackToPlaybackQueue(null, emptyList(), listOf("track-a", "track-b"), "track-b")
+        )
+    }
+
 }
