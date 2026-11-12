@@ -592,7 +592,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             Icon(Icons.Default.LibraryMusic, null)
             Text("  Agregar una o varias canciones")
         }
-NaN        if (tracks.isNotEmpty()) {
+        if (tracks.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = !showFavoritesOnly,
@@ -609,6 +609,20 @@ NaN        if (tracks.isNotEmpty()) {
                 TextButton(onClick = { sortAscending = !sortAscending; prefs.edit().putBoolean("audio_sort_ascending", sortAscending).apply() }) {
                     Icon(Icons.Default.SortByAlpha, contentDescription = null, tint = Accent)
                     Text(if (sortAscending) "A–Z" else "Z–A")
+                }
+                TextButton(onClick = {
+                    playbackQueue = sortedTracks.shuffled()
+                    playbackQueue.firstOrNull()?.let { firstUri ->
+                        val first = Uri.parse(firstUri)
+                        val firstTitle = runCatching {
+                            context.contentResolver.query(first, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                if (cursor.moveToFirst()) cursor.getString(0) else null
+                            }
+                        }.getOrNull() ?: first.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                        playTrack(firstUri, firstTitle)
+                    }
+                }) {
+                    Text("Aleatorio")
                 }
             }
             OutlinedTextField(
