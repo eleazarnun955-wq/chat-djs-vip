@@ -40,6 +40,9 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     var editorContent by remember { mutableStateOf("") }
     var newFilePath by remember { mutableStateOf("") }
     var pendingDeleteFilePath by remember { mutableStateOf<String?>(null) }
+    var pendingFileSwitchPath by remember { mutableStateOf<String?>(null) }
+    var fileSearch by remember { mutableStateOf("") }
+    var fileTypeFilter by remember { mutableStateOf("Todos") }
     var buildReport by remember { mutableStateOf<ProjectBuildReport?>(null) }
     var taskMode by remember { mutableStateOf("Crear") }
     val savedProjects = remember(context) {
@@ -61,6 +64,29 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                 val json = JSONArray(stored)
                 for (i in 0 until json.length()) add(json.getString(i))
             }
+        }
+    }
+    val currentStoredContent = importedFiles.firstOrNull { it.path == selectedFilePath }?.content
+    val isEditorDirty = selectedFilePath != null && currentStoredContent != null && editorContent != currentStoredContent
+    val visibleFiles = importedFiles.filter { file ->
+        val matchesSearch = fileSearch.isBlank() || file.path.contains(fileSearch.trim(), ignoreCase = true)
+        val lowerPath = file.path.lowercase()
+        val matchesType = when (fileTypeFilter) {
+            "Kotlin" -> lowerPath.endsWith(".kt") || lowerPath.endsWith(".java")
+            "XML" -> lowerPath.endsWith(".xml")
+            "Gradle" -> lowerPath.endsWith(".gradle") || lowerPath.endsWith(".gradle.kts") || lowerPath.contains("gradle")
+            "Otros" -> !(lowerPath.endsWith(".kt") || lowerPath.endsWith(".java") || lowerPath.endsWith(".xml") ||
+                lowerPath.endsWith(".gradle") || lowerPath.endsWith(".gradle.kts") || lowerPath.contains("gradle"))
+            else -> true
+        }
+        matchesSearch && matchesType
+    }
+    val selectProjectFile: (String) -> Unit = { path ->
+        if (path != selectedFilePath && isEditorDirty) {
+            pendingFileSwitchPath = path
+        } else {
+            selectedFilePath = path
+            editorContent = importedFiles.firstOrNull { it.path == path }?.content.orEmpty()
         }
     }
     val saveProject: (List<ImportedProjectFile>) -> Unit = { filesToSave ->
@@ -160,7 +186,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             OutlinedTextField(value = projectName, onValueChange = { projectName = it }, modifier = Modifier.weight(1f),
                 singleLine = true, label = { Text("Nombre del proyecto") })
-            Button(onClick = { saveProject(importedFiles) }, enabled = !isGenerating && projectName.isNotBlank()) { Text("Guardar") }
+            Button(onClick = { saveProject(importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }) }, enabled = !isGenerating && projectName.isNotBlank()) { Text("Guardar") }
         }
         if (savedProjects.isNotEmpty()) {
             Text("Mis proyectos guardados", fontWeight = FontWeight.SemiBold)
@@ -183,7 +209,28 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         }
         if (importedFiles.isNotEmpty()) {
             Text("Explorador y editor de archivos", fontWeight = FontWeight.SemiBold)
-            Text("Selecciona un archivo, edita su contenido y guarda los cambios en el proyecto.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Text("Busca por nombre o ruta y filtra por tipo de archivo. Los cambios pendientes se protegen al cambiar de archivo.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            OutlinedTextField(
+                value = fileSearch,
+                onValueChange = { fileSearch = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Buscar archivo por nombre o ruta") },
+                placeholder = { Text("MainActivity, manifest, gradle…") }
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf("Todos", "Kotlin", "XML", "Gradle", "Otros").forEach { type ->
+                    FilterChip(
+                        selected = fileTypeFilter == type,
+                        onClick = { fileTypeFilter = type },
+                        label = { Text(type) }
+                    )
+                }
+            }
+            Text("Mostrando ${visibleFiles.size} de ${importedFiles.size} archivos", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = newFilePath,
@@ -204,7 +251,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                         importedFiles.any { it.path == path } -> status = "Ese archivo ya existe."
                         importedFiles.size >= 100 -> status = "El proyecto alcanzó el límite de 100 archivos."
                         else -> {
-                            val updatedFiles = importedFiles + ImportedProjectFile(path, "")
+                            val currentFiles = importedFiles.map { file -> if (file.path == selectedFilePath) file.copy(content = editorContent) else file }
+                            val updatedFiles = currentFiles + ImportedProjectFile(path, "")
                             importedFiles = updatedFiles
                             selectedFilePath = path
                             editorContent = ""
@@ -216,12 +264,9 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                 }, enabled = !isGenerating) { Text("Crear") }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                importedFiles.forEach { file ->
+                visibleFiles.forEach { file ->
                     TextButton(
-                        onClick = {
-                            selectedFilePath = file.path
-                            editorContent = file.content
-                        },
+                        onClick = { selectProjectFile(file.path) },
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
                     ) {
@@ -231,6 +276,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             }
             selectedFilePath?.let { path ->
                 Text(path, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                if (isEditorDirty) Text("Cambios sin guardar", color = MaterialTheme.colorScheme.tertiary, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editorContent,
                     onValueChange = { editorContent = it },
@@ -406,6 +452,38 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     status = "Contexto del estudio borrado. Puedes iniciar otro proyecto."
                 }, enabled = !isGenerating) { Text("Nuevo proyecto") }
             }
+        }
+        pendingFileSwitchPath?.let { nextPath ->
+            AlertDialog(
+                onDismissRequest = { pendingFileSwitchPath = null },
+                title = { Text("Cambios sin guardar") },
+                text = { Text("El archivo actual tiene cambios que todavía no se han guardado. ¿Qué quieres hacer antes de abrir $nextPath?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        val currentPath = selectedFilePath
+                        val updatedFiles = importedFiles.map { file ->
+                            if (file.path == currentPath) file.copy(content = editorContent) else file
+                        }
+                        importedFiles = updatedFiles
+                        saveProject(updatedFiles)
+                        selectedFilePath = nextPath
+                        editorContent = updatedFiles.firstOrNull { it.path == nextPath }?.content.orEmpty()
+                        pendingFileSwitchPath = null
+                        status = "Cambios guardados y archivo $nextPath abierto."
+                    }) { Text("Guardar y abrir") }
+                },
+                dismissButton = {
+                    Row {
+                        TextButton(onClick = {
+                            selectedFilePath = nextPath
+                            editorContent = importedFiles.firstOrNull { it.path == nextPath }?.content.orEmpty()
+                            pendingFileSwitchPath = null
+                            status = "Se descartaron los cambios no guardados del archivo anterior."
+                        }) { Text("Descartar") }
+                        TextButton(onClick = { pendingFileSwitchPath = null }) { Text("Cancelar") }
+                    }
+                }
+            )
         }
         pendingDeleteFilePath?.let { path ->
             AlertDialog(
