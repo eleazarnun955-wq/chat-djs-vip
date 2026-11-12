@@ -31,6 +31,7 @@ object OnDeviceLlmEngine {
     private var engine: Engine? = null
     private var conversation: Conversation? = null
     private var loadedPath: String? = null
+    private var loadedBackendIsGpu: Boolean? = null
 
     private const val SYSTEM_PROMPT = """
 Eres CHAT DJ'S VIP, un asistente universal, útil, claro y respetuoso.
@@ -121,12 +122,28 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     if (currentQuestionIndex >= 0) removeAt(currentQuestionIndex)
                     removeAll { it.contains("Consultando...") }
                 }
-                ensureLoaded(app, path, historyForInitialization)
+                if (conversation == null || loadedPath != path) {
+                    try {
+                        ensureLoaded(app, path, historyForInitialization, useGpu = true)
+                    } catch (gpuLoadError: Throwable) {
+                        ensureLoaded(app, path, historyForInitialization, useGpu = false)
+                    }
+                }
                 val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
                     .getString("facts", "").orEmpty().lines().filter { it.isNotBlank() }.takeLast(10).joinToString("; ")
                 val modelPrompt = if (savedFacts.isBlank()) question
                     else "$question\n\nContexto privado guardado localmente por el usuario: $savedFacts"
-                checkNotNull(conversation).sendMessage(modelPrompt).toString()
+                try {
+                    checkNotNull(conversation).sendMessage(modelPrompt).toString()
+                } catch (gpuReplyError: Throwable) {
+                    if (loadedBackendIsGpu == true) {
+                        releaseLoadedModel()
+                        ensureLoaded(app, path, historyForInitialization, useGpu = false)
+                        checkNotNull(conversation).sendMessage(modelPrompt).toString()
+                    } else {
+                        throw gpuReplyError
+                    }
+                }
             }
             val answer = result.fold(
                 onSuccess = { it.ifBlank { "El modelo local no generó una respuesta. Intenta formular la pregunta de otra manera." } },
@@ -136,8 +153,8 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
         }
     }
 
-    private fun ensureLoaded(context: Context, path: String, history: List<String>) {
-        if (conversation != null && loadedPath == path) return
+    private fun ensureLoaded(context: Context, path: String, history: List<String>, useGpu: Boolean) {
+        if (conversation != null && loadedPath == path && loadedBackendIsGpu == useGpu) return
         releaseLoadedModel()
         val modelFile = File(path)
         require(modelFile.isFile && modelFile.length() > 50L * 1024L * 1024L) {
@@ -146,7 +163,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
         val newEngine = Engine(
             EngineConfig(
                 modelPath = modelFile.absolutePath,
-                backend = Backend.CPU(),
+                backend = if (useGpu) Backend.GPU() else Backend.CPU(),
                 cacheDir = context.cacheDir.path
             )
         )
@@ -173,6 +190,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             engine = newEngine
             conversation = newConversation
             loadedPath = path
+            loadedBackendIsGpu = useGpu
         } catch (error: Throwable) {
             runCatching { newEngine.close() }
             throw error
@@ -185,5 +203,6 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
         runCatching { engine?.close() }
         engine = null
         loadedPath = null
+        loadedBackendIsGpu = null
     }
 }
