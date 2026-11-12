@@ -561,6 +561,19 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         }
     }
 
+    fun playAdjacentTrack(direction: Int) {
+        val activeQueue = playbackQueue.filter { it in sortedTracks }.ifEmpty { sortedTracks }
+        val currentIndex = activeQueue.indexOf(currentUri)
+        val targetUri = activeQueue.getOrNull(currentIndex + direction) ?: return
+        val target = Uri.parse(targetUri)
+        val targetTitle = runCatching {
+            context.contentResolver.query(target, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull() ?: target.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+        playTrack(targetUri, targetTitle)
+    }
+
     val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) {
             val added = uris.mapNotNull { uri ->
@@ -738,6 +751,20 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         Icon(Icons.Default.GraphicEq, null, tint = Accent)
                         Text(currentTitle.orEmpty(), Modifier.weight(1f).padding(start = 8.dp), maxLines = 1, fontWeight = FontWeight.Medium)
                         if (isLoading) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Accent, strokeWidth = 2.dp)
+                        IconButton(onClick = {
+                            if (currentPositionMs > 3000) {
+                                runCatching { player?.seekTo(0) }
+                                currentPositionMs = 0
+                                seekPositionMs = 0f
+                            } else {
+                                playAdjacentTrack(-1)
+                            }
+                        }, enabled = !isLoading && currentUri != null) {
+                            Icon(Icons.Default.SkipPrevious, contentDescription = "Canción anterior", tint = Accent)
+                        }
+                        IconButton(onClick = { playAdjacentTrack(1) }, enabled = !isLoading && currentUri != null) {
+                            Icon(Icons.Default.SkipNext, contentDescription = "Siguiente canción", tint = Accent)
+                        }
                         IconButton(onClick = {
                             if (isPlaying) {
                                 runCatching { player?.pause() }
