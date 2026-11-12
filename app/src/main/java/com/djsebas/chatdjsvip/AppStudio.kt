@@ -40,6 +40,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     var editorContent by remember { mutableStateOf("") }
     var newFilePath by remember { mutableStateOf("") }
     var pendingDeleteFilePath by remember { mutableStateOf<String?>(null) }
+    var buildReport by remember { mutableStateOf<ProjectBuildReport?>(null) }
     var taskMode by remember { mutableStateOf("Crear") }
     val savedProjects = remember(context) {
         val stored = preferences.getString("app_studio_projects", null)
@@ -263,6 +264,37 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = target == "Android", onClick = { target = "Android"; preferences.edit().putString("app_studio_target", "Android").apply() }, label = { Text("Android / APK") })
             FilterChip(selected = target == "Web", onClick = { target = "Web"; preferences.edit().putString("app_studio_target", "Web").apply() }, label = { Text("Página / Web app") })
+        }
+        if (target == "Android") {
+            OutlinedButton(
+                onClick = {
+                    val currentFiles = importedFiles.map { file ->
+                        if (file.path == selectedFilePath) file.copy(content = editorContent) else file
+                    }
+                    buildReport = ProjectBuildValidator.validate(currentFiles)
+                    status = "Revisión de estructura Android terminada. No se ejecutó una compilación."
+                },
+                enabled = !isGenerating,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Revisar si el proyecto está listo para compilar") }
+            buildReport?.let { report ->
+                Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Diagnóstico de compilación", fontWeight = FontWeight.Bold)
+                        Text(report.summary, fontSize = 13.sp)
+                        report.checks.forEach { check ->
+                            Text(
+                                (if (check.passed) "✓ " else "• ") + check.title + ": " + check.detail,
+                                fontSize = 12.sp,
+                                color = if (check.passed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (report.isAndroidProject) {
+                            Text("Comando sugerido: ${report.buildCommand}", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+            }
         }
         Text("¿Qué quieres hacer ahora?", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
