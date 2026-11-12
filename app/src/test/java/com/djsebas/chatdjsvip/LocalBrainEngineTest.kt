@@ -42,8 +42,43 @@ class LocalBrainEngineTest {
         assertEquals("", saved)
     }
 
+    @Test fun recognizesExpandedOfflineTechnicalTopics() {
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Qué es Python?"))
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("Explícame qué es una API"))
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Para qué sirve Jetpack Compose?"))
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Qué diferencia hay entre WAV y MP3?"))
+    }
+
+    @Test fun combinesMultipleLocalKnowledgeCardsForComparisons() {
+        val answer = LocalBrainEngine.answerLocally("¿Qué diferencia hay entre WAV y MP3?", emptyList(), "")
+        assertTrue("La comparación debe incluir la ficha MP3. Respuesta: $answer", answer.contains("MP3 es un formato"))
+        assertTrue("La comparación debe incluir la ficha WAV. Respuesta: $answer", answer.contains("WAV suele almacenar"))
+    }
+
+    @Test fun directsGeneralQuestionsToTheInstalledLocalModel() {
+        val question = "¿Cómo funciona un LLM local offline?"
+        assertEquals(LocalBrainIntent.UNKNOWN, LocalBrainEngine.classifyIntent(question))
+        val answer = LocalBrainEngine.answerLocally(question, emptyList(), "")
+        assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
+        assertTrue(answer.contains("Importa el archivo Qwen3-0.6B"))
+    }
+
+    @Test fun recognizesMoreAppDevelopmentRequests() {
+        assertEquals(LocalBrainIntent.APP_DEVELOPMENT, LocalBrainEngine.classifyIntent("Ayúdame a depurar código"))
+        assertEquals(LocalBrainIntent.APP_DEVELOPMENT, LocalBrainEngine.classifyIntent("Quiero generar APK"))
+    }
+
+    @Test fun routesAudioMasteringQuestionsToDjKnowledge() {
+        assertEquals(LocalBrainIntent.DJ, LocalBrainEngine.classifyIntent("¿Cómo hago la masterización y evito clipping?"))
+    }
+
+    @Test fun keepsUnknownTopicsHonestAfterKnowledgeExpansion() {
+        val answer = LocalBrainEngine.answerLocally("Explícame física cuántica avanzada", emptyList(), "")
+        assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
+    }
+
     @Test fun doesNotPretendUnknownTopicsAreKnown() {
         val answer = LocalBrainEngine.answerLocally("Explícame un tema que no está en la base", emptyList(), "")
-        assertTrue(answer.contains("No tengo una ficha de conocimiento local suficiente"))
+        assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
     }
 }
