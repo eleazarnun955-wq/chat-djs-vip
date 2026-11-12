@@ -90,8 +90,14 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             val userRequest = requirements.trim()
             val prompt = """MODO_CREADOR_APPS:
 Plataforma solicitada: $target.
+Modo de trabajo: $taskMode.
 ${if (studioHistory.isEmpty()) "Requisitos iniciales del usuario:" else "Nueva instrucción del usuario para continuar el proyecto existente:"}
 $userRequest
+
+Modo Crear: genera estructura inicial funcional y archivos completos.
+Modo Mejorar: conserva funciones existentes y limita cambios a archivos necesarios.
+Modo Corregir: explica causa del error, entrega corrección y pruebas de regresión.
+Modo Preparar build: revisa dependencias, configuración, permisos, comandos reproducibles y criterios de éxito; no afirmes compilación real sin ejecutarla.
 
 Entrega una solución de desarrollo realista. Primero resume el alcance y la arquitectura. Después organiza la respuesta por archivos, indicando la ruta exacta y proporcionando el contenido completo de cada archivo esencial. IMPORTANTE: antes de cada bloque de código escribe una línea independiente con este formato exacto: Archivo: ruta/relativa/al/proyecto.ext. Usa rutas relativas seguras, sin .. ni rutas absolutas. Incluye dependencias, versiones compatibles, configuración, instrucciones de compilación y pruebas. Para Android usa Kotlin y Jetpack Compose salvo que exista una razón técnica clara para otra opción. Para web indica framework, estructura y comandos. Incluye manejo de errores, accesibilidad y seguridad. No inventes servicios ya conectados ni afirmes que compilaste o probaste algo. Si faltan datos imprescindibles, declara los supuestos y pregunta solo lo necesario. Si la respuesta es demasiado extensa, divide el trabajo en entregas numeradas y no omitas archivos esenciales. Si ya existe un proyecto en el historial, conserva sus decisiones y archivos previos y entrega cambios compatibles, indicando exactamente qué archivos reemplazar o crear."""
             isGenerating = true
