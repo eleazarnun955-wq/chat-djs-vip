@@ -11,50 +11,70 @@ data class ProjectZipResult(val success: Boolean, val fileCount: Int = 0, val er
 object ProjectZipExporter {
     private val fence = Regex("(?s)\\x60\\x60\\x60([^\\n\\x60]*)\\n(.*?)\\x60\\x60\\x60")
     private val pathLine = Regex("(?im)^\\s*(?:Archivo|Ruta|File|Path)\\s*:\\s*([^\\n]+)")
+    private const val MAX_FILES = 100
+    private const val MAX_TOTAL_BYTES = 5 * 1024 * 1024
 
-    fun export(context: Context, uri: Uri, markdown: String): ProjectZipResult {
-        if (markdown.isBlank()) return ProjectZipResult(false, error = "No hay código para exportar.")
+    fun export(
+        context: Context,
+        uri: Uri,
+        markdown: String,
+        projectFiles: List<ImportedProjectFile> = emptyList()
+    ): ProjectZipResult {
+        if (markdown.isBlank() && projectFiles.isEmpty()) {
+            return ProjectZipResult(false, error = "No hay archivos ni código para exportar.")
+        }
         return runCatching {
-            val matches = fence.findAll(markdown).toList()
             context.contentResolver.openOutputStream(uri)?.use { raw ->
                 ZipOutputStream(raw).use { zip ->
                     var count = 0
+                    var totalBytes = 0L
                     val used = mutableSetOf<String>()
-                    zip.putNextEntry(ZipEntry("README-GENERADO.md"))
-                    zip.write(markdown.toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    count++
 
-                    matches.forEachIndexed { index, match ->
-                        val code = match.groupValues[2].trimEnd()
-                        if (code.isNotBlank()) {
-                            // Only inspect text since the previous code block. This prevents a
-                            // missing path declaration from accidentally reusing an older file path.
-                            val previousEnd = if (index == 0) 0 else matches[index - 1].range.last + 1
-                            val betweenBlocks = markdown.substring(previousEnd, match.range.first)
-                            val declared = pathLine.findAll(betweenBlocks).lastOrNull()?.groupValues?.get(1)?.trim()
-                            val info = match.groupValues[1].trim().split(Regex("\\s+")).firstOrNull().orEmpty()
-                            val candidate = declared?.takeIf { it.isNotBlank() } ?: info.takeIf { it.contains("/") }
-                            val safePath = sanitize(candidate, index, info)
-                            var finalPath = safePath
-                            var suffix = 2
-                            while (!used.add(finalPath.lowercase(Locale.ROOT))) {
-                                val dot = safePath.lastIndexOf('.')
-                                finalPath = if (dot > safePath.lastIndexOf('/')) safePath.substring(0, dot) + "-$suffix" + safePath.substring(dot)
-                                    else "$safePath-$suffix"
-                                suffix++
-                            }
-                            zip.putNextEntry(ZipEntry(finalPath))
-                            zip.write((code + "\n").toByteArray(Charsets.UTF_8))
-                            zip.closeEntry()
-                            count++
+                    fun addFile(path: String, content: ByteArray) {
+                        require(count < MAX_FILES) { "El proyecto supera el límite de $MAX_FILES archivos." }
+                        totalBytes += content.size
+                        require(totalBytes <= MAX_TOTAL_BYTES) { "El proyecto supera el límite de 5 MB." }
+                        var finalPath = path
+                        var suffix = 2
+                        while (!used.add(finalPath.lowercase(Locale.ROOT))) {
+                            val dot = path.lastIndexOf('.')
+                            finalPath = if (dot > path.lastIndexOf('/')) {
+                                path.substring(0, dot) + "-$suffix" + path.substring(dot)
+                            } else "$path-$suffix"
+                            suffix++
                         }
-                    }
-                    if (matches.isEmpty()) {
-                        zip.putNextEntry(ZipEntry("AVISO.txt"))
-                        zip.write("No se detectaron bloques de código Markdown. Consulta README-GENERADO.md.".toByteArray(Charsets.UTF_8))
+                        zip.putNextEntry(ZipEntry(finalPath))
+                        zip.write(content)
                         zip.closeEntry()
                         count++
+                    }
+
+                    projectFiles.forEach { file ->
+                        val safePath = sanitize(file.path, count, "")
+                        require(file.content.toByteArray(Charsets.UTF_8).size <= 512 * 1024) {
+                            "El archivo supera el límite de 512 KB: ${file.path}"
+                        }
+                        addFile(safePath, file.content.toByteArray(Charsets.UTF_8))
+                    }
+
+                    if (markdown.isNotBlank()) {
+                        addFile("README-GENERADO.md", markdown.toByteArray(Charsets.UTF_8))
+                        val matches = fence.findAll(markdown).toList()
+                        matches.forEachIndexed { index, match ->
+                            val code = match.groupValues[2].trimEnd()
+                            if (code.isNotBlank()) {
+                                val previousEnd = if (index == 0) 0 else matches[index - 1].range.last + 1
+                                val betweenBlocks = markdown.substring(previousEnd, match.range.first)
+                                val declared = pathLine.findAll(betweenBlocks).lastOrNull()?.groupValues?.get(1)?.trim()
+                                val info = match.groupValues[1].trim().split(Regex("\\s+")).firstOrNull().orEmpty()
+                                val candidate = declared?.takeIf { it.isNotBlank() } ?: info.takeIf { it.contains("/") }
+                                val safePath = sanitize(candidate.orEmpty(), index, info)
+                                addFile(safePath, (code + "\\n").toByteArray(Charsets.UTF_8))
+                            }
+                        }
+                        if (matches.isEmpty()) {
+                            addFile("AVISO.txt", "No se detectaron bloques de código Markdown. Consulta README-GENERADO.md.".toByteArray(Charsets.UTF_8))
+                        }
                     }
                     count
                 }
@@ -65,8 +85,8 @@ object ProjectZipExporter {
         )
     }
 
-    private fun sanitize(candidate: String?, index: Int, language: String): String {
-        val raw = candidate.orEmpty().replace('\\', '/').trim().trimStart('/')
+    private fun sanitize(candidate: String, index: Int, language: String): String {
+        val raw = candidate.replace('\\\\', '/').trim().trimStart('/')
         val safe = raw.split('/').filter { it.isNotBlank() && it != "." && it != ".." }
             .joinToString("/") { segment -> segment.replace(Regex("[^A-Za-z0-9._-]"), "_") }
         if (safe.isNotBlank()) return safe
