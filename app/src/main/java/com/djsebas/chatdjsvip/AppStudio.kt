@@ -34,6 +34,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     var requirements by remember { mutableStateOf("") }
     var target by remember { mutableStateOf(preferences.getString("app_studio_target", "Android") ?: "Android") }
     var projectName by remember { mutableStateOf("Mi proyecto") }
+    var pendingDeleteProject by remember { mutableStateOf<String?>(null) }
     var taskMode by remember { mutableStateOf("Crear") }
     val savedProjects = remember(context) {
         val stored = preferences.getString("app_studio_projects", null)
@@ -137,7 +138,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                 savedProjects.forEach { name ->
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         FilterChip(selected = projectName == name, onClick = { loadProject(name) }, label = { Text(name) })
-                        IconButton(onClick = { deleteProject(name) }, enabled = !isGenerating) {
+                        IconButton(onClick = { pendingDeleteProject = name }, enabled = !isGenerating) {
                             Icon(Icons.Default.Delete, contentDescription = "Eliminar proyecto $name")
                         }
                     }
@@ -219,6 +220,19 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     status = "Contexto del estudio borrado. Puedes iniciar otro proyecto."
                 }, enabled = !isGenerating) { Text("Nuevo proyecto") }
             }
+        }
+        pendingDeleteProject?.let { name ->
+            AlertDialog(
+                onDismissRequest = { pendingDeleteProject = null },
+                title = { Text("Eliminar proyecto") },
+                text = { Text("¿Seguro que quieres eliminar «$name» de tus proyectos guardados? Esta acción no se puede deshacer. El contenido que tengas abierto permanecerá intacto.") },
+                confirmButton = {
+                    TextButton(onClick = { deleteProject(name); pendingDeleteProject = null }) { Text("Eliminar") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeleteProject = null }) { Text("Cancelar") }
+                }
+            )
         }
         Text(status, color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
         if (result.isNotBlank()) {
