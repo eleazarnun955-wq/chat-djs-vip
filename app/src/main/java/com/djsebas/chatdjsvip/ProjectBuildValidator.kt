@@ -126,8 +126,19 @@ object ProjectBuildValidator {
             ProjectBuildCheck("gradle.properties", properties,
                 if (properties) "Se encontró gradle.properties." else "Opcional: agrega gradle.properties para fijar ajustes de Gradle.")
         )
-        val required = setOf("Configuración raíz de Gradle", "Módulo app incluido", "Plugin Android",
-            "Manifiesto XML", "Código fuente Android", "Gradle Wrapper", "Rutas de archivos únicas")
+        // Estos elementos son indispensables para un intento real de compilar un APK.
+        // No basta con detectar archivos con nombres correctos: el módulo debe estar incluido
+        // y declarar el plugin de aplicación Android.
+        val required = setOf(
+            "Configuración raíz de Gradle",
+            "Módulo app incluido",
+            "Plugin Android",
+            "Manifiesto XML",
+            "Elemento application",
+            "Código fuente Android",
+            "Gradle Wrapper",
+            "Rutas de archivos únicas"
+        )
         val ready = androidProject && checks.filter { it.title in required }.all { it.passed }
         val summary = when {
             !androidProject -> "No se reconoce todavía un proyecto Android. Importa un ZIP de un proyecto Android."
