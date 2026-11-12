@@ -1,6 +1,8 @@
 package com.djsebas.chatdjsvip
 
 import java.io.StringReader
+import java.net.URI
+import java.util.Properties
 import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 import org.xml.sax.InputSource
@@ -95,11 +97,22 @@ object ProjectBuildValidator {
         val wrapper = has("gradlew") && has("gradle/wrapper/gradle-wrapper.properties") &&
             has("gradle/wrapper/gradle-wrapper.jar")
         val properties = has("gradle.properties")
+        val wrapperPropertiesText = content("gradle/wrapper/gradle-wrapper.properties")
+        val distributionUrl = runCatching {
+            Properties().apply { load(StringReader(wrapperPropertiesText)) }.getProperty("distributionUrl")
+        }.getOrNull()
+        val secureDistributionUrl = runCatching {
+            val uri = URI(distributionUrl)
+            uri.scheme.equals("https", ignoreCase = true) &&
+                uri.host?.lowercase() in setOf("services.gradle.org", "downloads.gradle.org") &&
+                uri.userInfo == null
+        }.getOrDefault(false)
         val settingsText = settingsPath?.let(::content).orEmpty()
         val includesApp = Regex("""include\s*\(?\s*["']?:app["']?""").containsMatchIn(settingsText) ||
             Regex("""include\s*\(\s*["']app["']""").containsMatchIn(settingsText)
         val appBuildText = appBuildPath?.let(::content).orEmpty()
         val androidPlugin = Regex("""com\.android\.application""").containsMatchIn(appBuildText) ||
+            Regex("""(?i)alias\s*\(\s*libs\.plugins\.[A-Za-z0-9_.-]*android[A-Za-z0-9_.-]*application[A-Za-z0-9_.-]*\s*\)""").containsMatchIn(appBuildText) ||
             appBuildText.contains("com.android.tools.build:gradle")
         val namespace = Regex("""namespace\s*=\s*["']([^"']+)["']""").find(appBuildText)?.groupValues?.getOrNull(1)
         val applicationId = Regex("""applicationId\s*=\s*["']([^"']+)["']""").find(appBuildText)?.groupValues?.getOrNull(1)
@@ -124,6 +137,8 @@ object ProjectBuildValidator {
                 if (source) "Se encontró al menos un archivo Kotlin o Java en src/main." else "No se detectó código Kotlin/Java en src/main."),
             ProjectBuildCheck("Gradle Wrapper", wrapper,
                 if (wrapper) "Se encontraron gradlew, gradle-wrapper.properties y gradle-wrapper.jar." else "Falta gradlew, gradle-wrapper.properties o gradle-wrapper.jar."),
+            ProjectBuildCheck("Distribución Gradle segura", secureDistributionUrl,
+                if (secureDistributionUrl) "La distribución usa HTTPS y un dominio oficial de Gradle." else "Configura distributionUrl con HTTPS en services.gradle.org o downloads.gradle.org."),
             ProjectBuildCheck("Rutas de archivos únicas", !duplicatePaths,
                 if (!duplicatePaths) "No se detectaron rutas duplicadas ignorando mayúsculas." else "Hay rutas duplicadas que pueden sobrescribirse al exportar."),
             ProjectBuildCheck("gradle.properties", properties,
@@ -140,6 +155,7 @@ object ProjectBuildValidator {
             "Elemento application",
             "Código fuente Android",
             "Gradle Wrapper",
+            "Distribución Gradle segura",
             "Rutas de archivos únicas"
         )
         val ready = androidProject && checks.filter { it.title in required }.all { it.passed }
