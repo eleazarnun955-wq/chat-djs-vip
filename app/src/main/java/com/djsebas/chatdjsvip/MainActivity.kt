@@ -420,6 +420,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var searchText by remember { mutableStateOf("") }
     var showFavoritesOnly by remember { mutableStateOf(false) }
+    var sortAscending by remember { mutableStateOf(true) }
     var favorites by remember {
         val saved = prefs.getString("favorite_audio_tracks", null)
         mutableStateOf(
@@ -454,6 +455,15 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         title.contains(searchText.trim(), ignoreCase = true) &&
             (!showFavoritesOnly || uriString in favorites)
     }
+
+    val sortedTracks = filteredTracks.sortedBy { uriString ->
+        val uri = Uri.parse(uriString)
+        (runCatching {
+            context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+        }.getOrNull() ?: uri.lastPathSegment ?: "Audio").lowercase(Locale.ROOT)
+    }.let { if (sortAscending) it else it.reversed() }
 
     fun toggleFavorite(uriString: String) {
         favorites = if (uriString in favorites) favorites - uriString else favorites + uriString
@@ -565,6 +575,10 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     label = { Text("Favoritas (${favorites.count { it in tracks }})") },
                     leadingIcon = { Icon(Icons.Default.Favorite, null) }
                 )
+                TextButton(onClick = { sortAscending = !sortAscending }) {
+                    Icon(Icons.Default.SortByAlpha, contentDescription = null, tint = Accent)
+                    Text(if (sortAscending) "A–Z" else "Z–A")
+                }
             }
             OutlinedTextField(
                 value = searchText,
@@ -593,7 +607,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             if (filteredTracks.isEmpty()) {
                 Text("No hay canciones que coincidan con la búsqueda.", color = Muted, fontSize = 13.sp)
             } else LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filteredTracks) { uriString ->
+                items(sortedTracks) { uriString ->
                     val uri = Uri.parse(uriString)
                     val title = remember(uriString) {
                         runCatching {
