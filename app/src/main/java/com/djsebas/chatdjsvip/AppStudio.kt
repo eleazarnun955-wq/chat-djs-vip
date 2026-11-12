@@ -27,8 +27,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE)
     }
     var requirements by remember { mutableStateOf("") }
-    var target by remember { mutableStateOf("Android") }
-    var result by remember { mutableStateOf("") }
+    var target by remember { mutableStateOf(preferences.getString("app_studio_target", "Android") ?: "Android") }
+    var result by remember { mutableStateOf(preferences.getString("app_studio_last_result", "").orEmpty()) }
     var isGenerating by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Describe la aplicación que quieres crear.") }
     val studioHistory = remember(context) {
@@ -72,8 +72,8 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         )
         Text("¿Qué tipo de aplicación quieres crear?", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = target == "Android", onClick = { target = "Android" }, label = { Text("Android / APK") })
-            FilterChip(selected = target == "Web", onClick = { target = "Web" }, label = { Text("Página / Web app") })
+            FilterChip(selected = target == "Android", onClick = { target = "Android"; preferences.edit().putString("app_studio_target", "Android").apply() }, label = { Text("Android / APK") })
+            FilterChip(selected = target == "Web", onClick = { target = "Web"; preferences.edit().putString("app_studio_target", "Web").apply() }, label = { Text("Página / Web app") })
         }
         OutlinedTextField(
             value = requirements,
@@ -100,7 +100,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     studioHistory.add("Tú: $prompt")
                     studioHistory.add("VIP: $answer")
                     while (studioHistory.size > 24) studioHistory.removeAt(0)
-                    preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString()).apply()
+                    preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString()).putString("app_studio_last_result", answer).putString("app_studio_target", target).apply()
                     result = answer
                     isGenerating = false
                     status = if (answer.startsWith("Para generar código")) "Falta configurar la clave de IA." else "Respuesta generada y contexto del proyecto guardado."
@@ -127,7 +127,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 Text("Contexto guardado: ${studioHistory.size / 2} intercambios", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                 TextButton(onClick = {
                     studioHistory.clear()
-                    preferences.edit().remove("app_studio_history").apply()
+                    preferences.edit().remove("app_studio_history").remove("app_studio_last_result").apply()
                     result = ""
                     status = "Contexto del estudio borrado. Puedes iniciar otro proyecto."
                 }, enabled = !isGenerating) { Text("Nuevo proyecto") }
