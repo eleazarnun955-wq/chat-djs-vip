@@ -13,6 +13,6 @@ Aplicación Android independiente en español: asistente conversacional, Escuela
 ## Construcción y entrega
 - GitHub Actions ejecuta pruebas unitarias disponibles, Android Lint y compila `app-debug.apk` al actualizar `main` o al ejecutar manualmente el workflow `Android APK`. La etiqueta y el nombre del artefacto se obtienen automáticamente de `versionName`.
 - El workflow adjunta el APK como artefacto y también lo publica como archivo individual en GitHub Releases.
-- La versión 3.3.8 conserva `applicationId` `com.djsebas.chatdjsvip.v320`, `versionCode` incremental y la firma configurada del workflow para actualizar la instalación 3.2.0/3.3.x sin reemplazar otras aplicaciones.
+- La versión 3.3.9 conserva `applicationId` `com.djsebas.chatdjsvip.v320`, `versionCode` incremental y la firma configurada del workflow para actualizar la instalación 3.2.0/3.3.x sin reemplazar otras aplicaciones.
 - La compilación remota desde la pantalla Estudio de Aplicaciones, la ejecución de pruebas de los proyectos generados y la publicación automática todavía requieren integrar un entorno de construcción seguro.
 - La IA en nube requiere una clave de Google AI Studio configurada por el usuario y está sujeta a los límites y condiciones del proveedor.
