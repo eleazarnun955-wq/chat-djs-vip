@@ -388,6 +388,17 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var isLoading by remember { mutableStateOf(false) }
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var searchText by remember { mutableStateOf("") }
+    var showFavoritesOnly by remember { mutableStateOf(false) }
+    var favorites by remember {
+        val saved = prefs.getString("favorite_audio_tracks", null)
+        mutableStateOf(
+            if (saved.isNullOrBlank()) emptySet()
+            else runCatching {
+                val json = JSONArray(saved)
+                List(json.length()) { index -> json.getString(index) }.toSet()
+            }.getOrDefault(emptySet())
+        )
+    }
     var currentPositionMs by remember { mutableIntStateOf(0) }
     var durationMs by remember { mutableIntStateOf(0) }
     var seekPositionMs by remember { mutableFloatStateOf(0f) }
@@ -409,7 +420,15 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 if (cursor.moveToFirst()) cursor.getString(0) else null
             }
         }.getOrNull() ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Audio"
-        title.contains(searchText.trim(), ignoreCase = true)
+        title.contains(searchText.trim(), ignoreCase = true) &&
+            (!showFavoritesOnly || uriString in favorites)
+    }
+
+    fun toggleFavorite(uriString: String) {
+        favorites = if (uriString in favorites) favorites - uriString else favorites + uriString
+        val json = JSONArray()
+        favorites.forEach { json.put(it) }
+        prefs.edit().putString("favorite_audio_tracks", json.toString()).apply()
     }
 
     fun saveTracks(updated: List<String>) {
@@ -491,6 +510,20 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             Text("  Agregar música del teléfono")
         }
         if (tracks.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !showFavoritesOnly,
+                    onClick = { showFavoritesOnly = false },
+                    label = { Text("Todas (${tracks.size})") },
+                    leadingIcon = { Icon(Icons.Default.LibraryMusic, null) }
+                )
+                FilterChip(
+                    selected = showFavoritesOnly,
+                    onClick = { showFavoritesOnly = true },
+                    label = { Text("Favoritas (${favorites.count { it in tracks }})") },
+                    leadingIcon = { Icon(Icons.Default.Favorite, null) }
+                )
+            }
             OutlinedTextField(
                 value = searchText,
                 onValueChange = { searchText = it },
@@ -547,8 +580,21 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                             }) {
                                 Icon(if (currentUri == uriString && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow, if (isPlaying) "Pausar" else "Reproducir", tint = Accent)
                             }
+                            IconButton(onClick = { toggleFavorite(uriString) }) {
+                                Icon(
+                                    if (uriString in favorites) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (uriString in favorites) "Quitar de favoritas" else "Agregar a favoritas",
+                                    tint = if (uriString in favorites) Color(0xFFFF6B81) else Muted
+                                )
+                            }
                             IconButton(onClick = {
                                 if (currentUri == uriString) stopPlayback()
+                                if (uriString in favorites) {
+                                    favorites = favorites - uriString
+                                    val favoriteJson = JSONArray()
+                                    favorites.forEach { favoriteJson.put(it) }
+                                    prefs.edit().putString("favorite_audio_tracks", favoriteJson.toString()).apply()
+                                }
                                 saveTracks(tracks.filterNot { it == uriString })
                             }) {
                                 Icon(Icons.Default.DeleteOutline, "Quitar canción", tint = Muted)
