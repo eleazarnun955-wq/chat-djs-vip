@@ -74,6 +74,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 require(tempFile!!.length() > 50L * 1024L * 1024L) {
                     "El archivo parece incompleto o no es un modelo de lenguaje."
                 }
+                releaseLoadedModel()
                 if (target.exists()) target.delete()
                 check(tempFile!!.renameTo(target)) { "No se pudo guardar el modelo en el teléfono." }
                 app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
@@ -82,12 +83,8 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             }
 
             val message = result.fold(
-                onSuccess = { path ->
-                    val loaded = runCatching { ensureLoaded(app, path, emptyList()) }
-                    if (loaded.isSuccess) "Modelo importado y cargado correctamente."
-                    else "Modelo importado. No se pudo iniciar en este teléfono: ${loaded.exceptionOrNull()?.message ?: "error desconocido"}"
-                },
-                onFailure = { "No se pudo importar el modelo: ${it.message ?: "error de archivo"}" }
+                onSuccess = { "Modelo importado correctamente. Se cargará al enviar la primera pregunta." },
+                onFailure = { "No se pudo importar el modelo: \${it.message ?: "error de archivo"}" }
             )
             tempFile?.takeIf { it.exists() }?.delete()
             mainHandler.post { onResult(result.isSuccess, message) }
@@ -125,7 +122,11 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     removeAll { it.contains("Consultando...") }
                 }
                 ensureLoaded(app, path, historyForInitialization)
-                checkNotNull(conversation).sendMessage(question).toString()
+                val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
+                    .getString("facts", "").orEmpty().lines().filter { it.isNotBlank() }.takeLast(10).joinToString("; ")
+                val modelPrompt = if (savedFacts.isBlank()) question
+                    else "$question\n\nContexto privado guardado localmente por el usuario: $savedFacts"
+                checkNotNull(conversation).sendMessage(modelPrompt).toString()
             }
             val answer = result.fold(
                 onSuccess = { it.ifBlank { "El modelo local no generó una respuesta. Intenta formular la pregunta de otra manera." } },
