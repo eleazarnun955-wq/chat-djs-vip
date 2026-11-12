@@ -82,7 +82,7 @@ object LocalBrainEngine {
                 else "Coincidencias en tu memoria local:\n" + matches.joinToString("\n") { "• $it" }
             }
             LocalBrainIntent.GREETING ->
-                "¡Hola! Soy CHAT DJ'S VIP con cerebro local. Puedo ayudarte con técnicas DJ, audio, conceptos de desarrollo, análisis paso a paso y memoria privada en este teléfono. No utilizo Gemini ni servicios de IA externos."
+                "¡Hola! Soy CHAT DJ'S VIP, tu asistente universal local. Puedo ayudarte con conocimientos generales y conservar memoria privada en este teléfono. No utilizo Gemini ni servidores de IA externos."
             LocalBrainIntent.DJ -> djKnowledgeReply(q)
             LocalBrainIntent.KNOWN_TOPIC -> localKnowledgeAnswer(q)
             LocalBrainIntent.APP_DEVELOPMENT -> appDevelopmentGuide(q)
