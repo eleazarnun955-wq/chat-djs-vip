@@ -439,6 +439,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var playbackSpeed by remember { mutableFloatStateOf(prefs.getFloat("audio_playback_speed", 1f).coerceIn(0.5f, 2f)) }
     var repeatCurrent by remember { mutableStateOf(prefs.getBoolean("audio_repeat_current", false)) }
     var autoPlayNext by remember { mutableStateOf(prefs.getBoolean("audio_auto_play_next", true)) }
+    var playbackQueue by remember { mutableStateOf<List<String>>(emptyList()) }
 
     LaunchedEffect(currentUri, isPlaying, isLoading) {
         while (currentUri != null && isPlaying && !isLoading) {
@@ -527,8 +528,9 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                         isPlaying = true
                     } else {
                         val completedUri = currentUri
-                        val nextIndex = sortedTracks.indexOf(completedUri) + 1
-                        val nextUri = sortedTracks.getOrNull(nextIndex)
+                        val activeQueue = playbackQueue.ifEmpty { sortedTracks }
+                        val nextIndex = activeQueue.indexOf(completedUri) + 1
+                        val nextUri = activeQueue.getOrNull(nextIndex)
                         if (autoPlayNext && nextUri != null) {
                             val next = Uri.parse(nextUri)
                             val nextTitle = runCatching {
@@ -590,7 +592,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
             Icon(Icons.Default.LibraryMusic, null)
             Text("  Agregar una o varias canciones")
         }
-        if (tracks.isNotEmpty()) {
+NaN        if (tracks.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = !showFavoritesOnly,
