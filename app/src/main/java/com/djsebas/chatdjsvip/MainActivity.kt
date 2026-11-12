@@ -519,13 +519,24 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) {
+            val added = uris.mapNotNull { uri ->
+                runCatching {
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                uri.toString().takeIf { it !in tracks }
+            }.distinct()
+            if (added.isNotEmpty()) {
+                saveTracks(tracks + added)
+                android.widget.Toast.makeText(
+                    context,
+                    if (added.size == 1) "Se agregó 1 canción" else "Se agregaron ${added.size} canciones",
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                android.widget.Toast.makeText(context, "Las canciones seleccionadas ya estaban en tu biblioteca", android.widget.Toast.LENGTH_SHORT).show()
             }
-            val value = uri.toString()
-            if (value !in tracks) saveTracks(tracks + value)
         }
     }
 
@@ -535,10 +546,10 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
 
     Column(modifier.fillMaxSize().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Biblioteca musical", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("Agrega canciones de tu teléfono. La selección se conserva para volver a reproducirlas.", color = Muted)
+        Text("Selecciona varias canciones en una sola operación. La biblioteca conserva tus archivos y permite buscar, marcar favoritas y reproducirlos.", color = Muted)
         Button(onClick = { audioPicker.launch(arrayOf("audio/*")) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.LibraryMusic, null)
-            Text("  Agregar música del teléfono")
+            Text("  Agregar una o varias canciones")
         }
         if (tracks.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
