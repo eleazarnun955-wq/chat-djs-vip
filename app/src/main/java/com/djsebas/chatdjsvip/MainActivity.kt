@@ -58,7 +58,7 @@ fun ChatDjsVipApp() {
     var messages by remember {
         val stored = preferences.getString("messages", null)
         mutableStateOf(
-            if (stored.isNullOrBlank()) listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.")
+            if (stored.isNullOrBlank()) listOf("¡Hola! Soy CHAT DJ'S VIP con cerebro local. Puedo ayudarte con DJ, música y desarrollo de aplicaciones sin IA externa.")
             else runCatching {
                 val json = JSONArray(stored)
                 List(json.length()) { index -> json.getString(index) }
