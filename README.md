@@ -1,15 +1,18 @@
 # CHAT DJ'S VIP
 
-Aplicación Android independiente en español: asistente conversacional y Escuela DJ.
+Aplicación Android independiente en español: asistente conversacional, Escuela DJ y Estudio de Aplicaciones.
 
-## Objetivos
-- Interfaz móvil de chat con historial local.
-- Escuela DJ: aprendizaje guiado sobre Serato DJ, rekordbox, VirtualDJ, Traktor, djay, controladoras, CDJ, mezcladoras y tornamesas.
-- Arquitectura preparada para incorporar modelos locales y proveedores en nube opcionales, sin suscripción obligatoria.
-- Las funciones externas y de IA en nube se habilitarán solo cuando exista un proveedor configurado; no se presentan simulaciones como integraciones reales.
+## Funciones incluidas
+- Chat con historial local, respuestas con Gemini opcional, entrada por voz, análisis de imágenes, lectura en voz alta, copiar y compartir respuestas.
+- Escuela DJ con contenidos guiados sobre software, controladoras, CDJ, mezcladoras, tornamesas, teoría musical y preparación de eventos.
+- Biblioteca musical local.
+- Estudio de Aplicaciones para diseñar proyectos Android y web, generar código, conservar el contexto, continuar mejoras y guardar resultados.
+- Exportación del resultado del Estudio de Aplicaciones como Markdown o ZIP. El ZIP incluye el documento completo y los bloques de código detectados, usando rutas declaradas por la IA cuando están disponibles.
+- No se presentan como reales integraciones de búsqueda web, ejecución de código, compilación o publicación que todavía no estén conectadas.
 
 ## Construcción y entrega
 - GitHub Actions compila `app-debug.apk` al actualizar `main` o al ejecutar manualmente el workflow `Android APK`.
 - El workflow adjunta el APK como artefacto y también lo publica como archivo individual en GitHub Releases.
-- En Android, descarga el archivo `.apk` desde la sección **Assets** de la versión publicada; no descargues el ZIP del artefacto de Actions.
-- La versión 3.3.0 actualiza la instalación independiente 3.2.0 con el mismo paquete y firma, por lo que conserva los datos. Incluye el módulo inicial Estudio de Aplicaciones para generar especificaciones y código con Gemini; la compilación remota desde la app aún requiere integración adicional. La versión 3.2.0 usa `applicationId` independiente `com.djsebas.chatdjsvip.v320`, por lo que se instala como aplicación separada. Incluye historial local, respuestas por Gemini opcional, entrada por voz, análisis de imágenes, lectura en voz alta, compartir respuestas, Escuela DJ y biblioteca musical local.
+- La versión 3.3.3 conserva `applicationId` `com.djsebas.chatdjsvip.v320`, `versionCode` incremental y la firma configurada del workflow para actualizar la instalación 3.2.0/3.3.x sin reemplazar otras aplicaciones.
+- La compilación remota desde la pantalla Estudio de Aplicaciones, la ejecución de pruebas de los proyectos generados y la publicación automática todavía requieren integrar un entorno de construcción seguro.
+- La IA en nube requiere una clave de Google AI Studio configurada por el usuario y está sujeta a los límites y condiciones del proveedor.
