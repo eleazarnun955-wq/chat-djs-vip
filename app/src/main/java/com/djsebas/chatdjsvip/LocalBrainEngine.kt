@@ -145,7 +145,11 @@ object LocalBrainEngine {
         "altavoz", "tornamesa", "vinilo", "aguja", "scratch", "compas",
         "frase musical", "cdj", "controladora", "mezcladora", "mixer", "loop",
         "hot cue", "serato", "rekordbox", "virtualdj", "traktor", "djay",
-        "no suena", "sin sonido", "latencia", "grabar sesion"
+        "no suena", "sin sonido", "latencia", "grabar sesion", "mezcla de audio",
+        "mezclar canciones", "transicion", "crossfader", "fader", "monitor",
+        "masterizacion", "masterizar", "limitador", "compresor", "reverb",
+        "delay", "echo", "efectos dj", "loop roll", "pitch", "beatgrid",
+        "fraseo", "ganancia de entrada", "nivel de salida", "sonido saturado"
     ).any { it in q }
 
     private fun isAppDevelopment(q: String) = listOf(
@@ -153,7 +157,10 @@ object LocalBrainEngine {
         "desarrollar una app", "desarrollar aplicacion", "programar una app",
         "generar codigo", "modo creador apps", "construir una aplicacion",
         "hacer una aplicacion", "compilar proyecto", "error de gradle",
-        "android studio", "modo creador apps", "repositorio"
+        "android studio", "modo creador apps", "repositorio", "crear software",
+        "programar", "depurar codigo", "corregir codigo", "arreglar error",
+        "hacer una pagina web", "crear sitio web", "base de datos", "publicar app",
+        "subir a github", "generar apk", "proyecto android", "interfaz de usuario"
     ).any { it in q }
 
     private fun isReasoningRequest(q: String) = listOf(
@@ -184,7 +191,37 @@ object LocalBrainEngine {
         KnowledgeEntry(listOf("permisos android", "manifest", "manifiesto android"),
             "Los permisos Android se declaran en AndroidManifest.xml. Algunos requieren autorización en tiempo de ejecución. Solicita solo los necesarios, explica su uso y maneja el caso en que el usuario los deniegue."),
         KnowledgeEntry(listOf("seguridad", "privacidad", "datos personales"),
-            "Principios básicos: recopila solo los datos necesarios, guarda secretos fuera del código, valida entradas, limita acceso a archivos, usa HTTPS solo cuando exista una función de red justificada y explica permisos y opciones de eliminación.")
+            "Principios básicos: recopila solo los datos necesarios, guarda secretos fuera del código, valida entradas, limita acceso a archivos, usa HTTPS solo cuando exista una función de red justificada y explica permisos y opciones de eliminación."),
+        KnowledgeEntry(listOf("python", "lenguaje python"),
+            "Python es un lenguaje de propósito general usado en automatización, análisis de datos y backend. Para un proyecto organiza el código en módulos, crea un entorno virtual, declara dependencias y añade pruebas. No ejecutes código desconocido sin aislamiento."),
+        KnowledgeEntry(listOf("git", "control de versiones"),
+            "Git registra cambios del proyecto. Flujo seguro: revisa git status, crea una rama, realiza cambios pequeños, ejecuta pruebas, inspecciona git diff y guarda un commit descriptivo. No sobrescribas trabajo ajeno sin revisar el historial."),
+        KnowledgeEntry(listOf("api", "interfaz de programacion"),
+            "Una API define cómo se comunican dos programas. Documenta rutas, métodos, parámetros, respuestas y errores. Valida entradas, controla permisos, limita solicitudes y nunca expongas claves secretas dentro de una app Android."),
+        KnowledgeEntry(listOf("json"),
+            "JSON representa datos estructurados con objetos, arreglos, cadenas, números, booleanos y null. Valida el formato antes de leerlo, contempla campos opcionales y maneja errores de conversión sin cerrar la aplicación."),
+        KnowledgeEntry(listOf("jetpack compose", "compose android"),
+            "Jetpack Compose construye interfaces Android con funciones @Composable y estado observable. Mantén el estado cerca de quien lo usa, evita operaciones lentas durante la composición y usa ViewModel cuando el estado deba sobrevivir a cambios de configuración."),
+        KnowledgeEntry(listOf("pruebas unitarias", "test unitario", "testing"),
+            "Las pruebas unitarias verifican funciones pequeñas con entradas conocidas y resultados esperados. Incluye casos normales, límites y errores. Ejecuta testDebugUnitTest y lintDebug antes de generar una APK."),
+        KnowledgeEntry(listOf("depurar", "debug", "depuracion", "logcat"),
+            "Para depurar Android reproduce el error, conserva el mensaje completo, revisa Logcat y localiza la primera causa real. Comprueba permisos, ciclo de vida, rutas, estado nulo y compatibilidad. Corrige una causa a la vez y vuelve a probar."),
+        KnowledgeEntry(listOf("experiencia de usuario", "ux", "interfaz de usuario", "ui"),
+            "Una buena interfaz deja claro qué hace cada control, muestra estados de carga y errores comprensibles, evita acciones destructivas sin confirmación y funciona con distintos tamaños de pantalla. Prueba los flujos con tareas reales."),
+        KnowledgeEntry(listOf("almacenamiento android", "archivos android", "scoped storage"),
+            "En Android moderno usa Storage Access Framework para que la persona elija archivos y carpetas. No dependas de rutas absolutas. Conserva permisos URI cuando sea necesario y comprueba errores de lectura y escritura."),
+        KnowledgeEntry(listOf("mp3", "formato mp3"),
+            "MP3 es un formato de audio comprimido con pérdida. Una tasa de bits mayor suele conservar más detalle a costa de archivos más grandes. Para exportar, finaliza correctamente el codificador, vacía los búferes y comprueba que el archivo se pueda reproducir."),
+        KnowledgeEntry(listOf("wav", "formato wav", "pcm"),
+            "WAV suele almacenar audio PCM sin compresión. La frecuencia de muestreo indica cuántas muestras por segundo se guardan y la profundidad de bits afecta el rango dinámico. Mantén la frecuencia y canales consistentes durante el procesamiento."),
+        KnowledgeEntry(listOf("frecuencia de muestreo", "sample rate", "khz"),
+            "La frecuencia de muestreo mide muestras por segundo: 44.1 kHz significa 44,100 muestras por segundo. Al combinar fuentes con distintas frecuencias, convierte de forma controlada para evitar cambios de velocidad o artefactos."),
+        KnowledgeEntry(listOf("clipping digital", "saturacion digital", "picos de audio"),
+            "El clipping digital ocurre cuando la señal supera el máximo representable y se recortan los picos. Deja margen antes del limitador, controla la ganancia por etapas y revisa los picos y la sonoridad del archivo exportado."),
+        KnowledgeEntry(listOf("modelo local", "llm local", "ia offline", "inteligencia artificial local"),
+            "Un asistente offline basado solo en reglas y fichas no equivale a un modelo generativo. Para ejecutar un LLM local se necesita integrar un modelo compatible, runtime, licencia, almacenamiento y memoria RAM suficientes. Sin esos componentes no debe anunciarse como IA generativa completa."),
+        KnowledgeEntry(listOf("copia de seguridad", "backup", "respaldar"),
+            "Una copia de seguridad debe poder restaurarse, no solo crearse. Guarda una copia independiente, verifica su integridad y prueba la restauración. No guardes la única copia en la misma carpeta o dispositivo que contiene el original."),
     )
 
     private fun hasKnownTopic(q: String) =
