@@ -35,6 +35,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     var target by remember { mutableStateOf(preferences.getString("app_studio_target", "Android") ?: "Android") }
     var projectName by remember { mutableStateOf("Mi proyecto") }
     var pendingDeleteProject by remember { mutableStateOf<String?>(null) }
+    var importedFiles by remember { mutableStateOf<List<ImportedProjectFile>>(emptyList()) }
     var taskMode by remember { mutableStateOf("Crear") }
     val savedProjects = remember(context) {
         val stored = preferences.getString("app_studio_projects", null)
@@ -64,6 +65,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                 .getOrElse { org.json.JSONObject() }
             val project = org.json.JSONObject().put("name", cleanName).put("target", target)
                 .put("history", JSONArray(studioHistory.toList())).put("result", result)
+                .put("files", JSONArray().apply { importedFiles.forEach { put(org.json.JSONObject().put("path", it.path).put("content", it.content)) } })
             projectsJson.put(cleanName, project)
             if (!savedProjects.contains(cleanName)) savedProjects.add(cleanName)
             preferences.edit().putString("app_studio_projects", JSONArray(savedProjects.toList()).toString())
@@ -83,6 +85,13 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             val history = project.optJSONArray("history") ?: JSONArray()
             for (i in 0 until history.length()) studioHistory.add(history.optString(i))
             result = project.optString("result", "")
+            importedFiles = buildList {
+                val files = project.optJSONArray("files") ?: JSONArray()
+                for (i in 0 until files.length()) {
+                    val item = files.optJSONObject(i) ?: continue
+                    add(ImportedProjectFile(item.optString("path"), item.optString("content")))
+                }
+            }
             preferences.edit().putString("app_studio_history", JSONArray(studioHistory).toString())
                 .putString("app_studio_last_result", result).apply()
             status = "Proyecto «$name» abierto."
@@ -99,6 +108,15 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             .putString("app_studio_project_data", projectsJson.toString()).apply()
         if (projectName == name) projectName = "Mi proyecto"
         status = "Proyecto guardado «$name» eliminado. El contenido que tienes abierto no se borró."
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val imported = ProjectZipImporter.import(context, uri)
+            if (imported.success) {
+                importedFiles = imported.files
+                status = "Se importaron ${imported.files.size} archivos. Se incluirán como contexto para las próximas mejoras."
+            } else status = "No se pudo importar: ${imported.error}"
+        }
     }
     val saveLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
         if (uri != null) {
@@ -145,6 +163,17 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
                 }
             }
         }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/zip", "application/x-zip-compressed")) }, enabled = !isGenerating) {
+                Icon(Icons.Default.Download, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("Importar proyecto ZIP")
+            }
+            Text(if (importedFiles.isEmpty()) "Sin archivos importados" else "${importedFiles.size} archivos cargados", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        }
+        if (importedFiles.isNotEmpty()) {
+            Text("Archivos del proyecto", fontWeight = FontWeight.SemiBold)
+            importedFiles.take(8).forEach { file -> Text("• ${file.path}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            if (importedFiles.size > 8) Text("Y ${importedFiles.size - 8} archivos más…", fontSize = 12.sp)
+        }
         Text("¿Qué tipo de aplicación quieres crear?", fontWeight = FontWeight.SemiBold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = target == "Android", onClick = { target = "Android"; preferences.edit().putString("app_studio_target", "Android").apply() }, label = { Text("Android / APK") })
@@ -163,6 +192,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
         )
         Button(onClick = {
             val userRequest = requirements.trim()
+            val filesContext = importedFiles.joinToString("\\n\\n") { file -> "Archivo existente: ${file.path}\\n```\\n${file.content}\\n```" }.take(120000)
             val prompt = """MODO_CREADOR_APPS:
 Plataforma solicitada: $target.
 Modo de trabajo: $taskMode.
@@ -197,7 +227,8 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     .put("name", cleanProjectName)
                     .put("target", target)
                     .put("history", updatedHistory)
-                    .put("result", answer))
+                    .put("result", answer)
+                    .put("files", JSONArray().apply { importedFiles.forEach { put(org.json.JSONObject().put("path", it.path).put("content", it.content)) } }))
                 if (!savedProjects.contains(cleanProjectName)) savedProjects.add(cleanProjectName)
                 preferences.edit()
                     .putString("app_studio_history", updatedHistory.toString())
