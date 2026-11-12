@@ -69,6 +69,29 @@ android {
         assertTrue(report.checks.any { it.title == "Actividad de inicio" && it.passed })
     }
 
+    @Test fun acceptsAndroidPluginFromVersionCatalogAlias() {
+        val files = completeProject().map { file ->
+            if (file.path == "app/build.gradle.kts") file.copy(content = """plugins { alias(libs.plugins.android.application) }
+android {
+    namespace = "com.example.demo"
+    defaultConfig { applicationId = "com.example.demo" }
+}""") else file
+        }
+        val report = ProjectBuildValidator.validate(files)
+        assertTrue(report.checks.any { it.title == "Plugin Android" && it.passed })
+    }
+
+    @Test fun rejectsInsecureGradleDistributionUrl() {
+        val files = completeProject().map { file ->
+            if (file.path == "gradle/wrapper/gradle-wrapper.properties") {
+                file.copy(content = "distributionUrl=http\\://services.gradle.org/distributions/gradle-8.10-bin.zip")
+            } else file
+        }
+        val report = ProjectBuildValidator.validate(files)
+        assertFalse(report.readyForBuildAttempt)
+        assertTrue(report.checks.any { it.title == "Distribución Gradle segura" && !it.passed })
+    }
+
     @Test fun warnsWhenLauncherIsMissing() {
         val manifest = """<manifest xmlns:android="http://schemas.android.com/apk/res/android">
             <application><activity android:name=".MainActivity" /></application>
