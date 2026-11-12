@@ -137,8 +137,11 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
     }
     val zipLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         if (uri != null) {
-            val export = ProjectZipExporter.export(context, uri, result)
-            status = if (export.success) "ZIP creado: ${export.fileCount} archivos listos para extraer." else "No se pudo crear el ZIP: ${export.error}"
+            val filesToExport = importedFiles.map { file ->
+                if (file.path == selectedFilePath) file.copy(content = editorContent) else file
+            }
+            val export = ProjectZipExporter.export(context, uri, result, filesToExport)
+            status = if (export.success) "ZIP creado: ${export.fileCount} archivos del proyecto y código listos para extraer." else "No se pudo crear el ZIP: ${export.error}"
         }
     }
 
