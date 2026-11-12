@@ -155,6 +155,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             val initialMessages = history.asSequence()
                 .filter { it.startsWith("Tú:") || it.startsWith("VIP:") }
                 .filterNot { it.contains("Consultando...") }
+                .toList()
                 .takeLast(10)
                 .mapNotNull { line ->
                     when {
