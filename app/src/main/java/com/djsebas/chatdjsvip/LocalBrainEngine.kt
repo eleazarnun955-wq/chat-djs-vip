@@ -117,7 +117,7 @@ object LocalBrainEngine {
     internal fun normalize(value: String): String =
         Normalizer.normalize(value.lowercase(Locale.ROOT), Normalizer.Form.NFD)
             .replace("\\p{M}+".toRegex(), "")
-            .replace("[^\\p{L}\\p{N}:? ]".toRegex(), " ")
+            .replace("[^\\p{L}\\p{N}: ]".toRegex(), " ")
             .replace("\\s+".toRegex(), " ")
             .trim()
 
@@ -153,7 +153,7 @@ object LocalBrainEngine {
         "desarrollar una app", "desarrollar aplicacion", "programar una app",
         "generar codigo", "modo creador apps", "construir una aplicacion",
         "hacer una aplicacion", "compilar proyecto", "error de gradle",
-        "android studio", "kotlin", "javascript", "html", "github", "repositorio"
+        "android studio", "modo creador apps", "repositorio"
     ).any { it in q }
 
     private fun isReasoningRequest(q: String) = listOf(
