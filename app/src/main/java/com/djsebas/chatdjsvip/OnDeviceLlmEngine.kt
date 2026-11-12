@@ -46,10 +46,12 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
 """
 
     fun hasInstalledModel(context: Context): Boolean {
-        val path = context.applicationContext
-            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val app = context.applicationContext
+        val savedPath = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(MODEL_PATH, null)
-        return !path.isNullOrBlank() && File(path).isFile && File(path).length() > 50L * 1024L * 1024L
+        val modelFile = recoverModelFile(app)
+        val path = savedPath?.takeIf { File(it).isFile } ?: modelFile.absolutePath
+        return File(path).isFile && File(path).length() > 50L * 1024L * 1024L
     }
 
     fun importModel(context: Context, uri: Uri, onResult: (Boolean, String) -> Unit) {
@@ -67,31 +69,54 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 }
 
                 val modelDirectory = File(app.filesDir, MODEL_DIR).apply { mkdirs() }
-                tempFile = File(modelDirectory, "assistant.litertlm.part")
                 val target = File(modelDirectory, "assistant.litertlm")
+                val backup = File(modelDirectory, "assistant.litertlm.backup")
+                if (!target.exists() && backup.exists()) {
+                    check(backup.renameTo(target)) { "No se pudo recuperar el modelo anterior." }
+                } else if (target.exists() && backup.exists()) {
+                    check(backup.delete()) { "No se pudo limpiar una copia anterior del modelo." }
+                }
+
+                val staged = File(modelDirectory, "assistant.litertlm.part")
+                tempFile = staged
                 app.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(tempFile!!).use { output -> input.copyTo(output) }
+                    FileOutputStream(staged).use { output -> input.copyTo(output) }
                 } ?: error("No se pudo leer el archivo seleccionado.")
-                require(tempFile!!.length() > 50L * 1024L * 1024L) {
+                require(staged.length() > 50L * 1024L * 1024L) {
                     "El archivo parece incompleto o no es un modelo de lenguaje."
                 }
+
+                validateModelFile(app, staged)
                 releaseLoadedModel()
-                if (target.exists()) target.delete()
-                check(tempFile!!.renameTo(target)) { "No se pudo guardar el modelo en el teléfono." }
-                app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                    .putString(MODEL_PATH, target.absolutePath).apply()
+
+                if (target.exists()) {
+                    check(target.renameTo(backup)) { "No se pudo proteger el modelo anterior." }
+                }
+                if (!staged.renameTo(target)) {
+                    if (backup.exists()) backup.renameTo(target)
+                    error("No se pudo colocar el nuevo modelo. Se conservó el anterior.")
+                }
+
+                val saved = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                    .putString(MODEL_PATH, target.absolutePath)
+                    .commit()
+                if (!saved) {
+                    target.delete()
+                    if (backup.exists()) backup.renameTo(target)
+                    error("No se pudo guardar la configuración. Se restauró el modelo anterior.")
+                }
+                if (backup.exists()) backup.delete()
                 target.absolutePath
             }
 
             val message = result.fold(
-                onSuccess = { "Modelo importado correctamente. Se cargará al enviar la primera pregunta." },
-                onFailure = { "No se pudo importar el modelo: ${it.message ?: "error de archivo"}" }
+                onSuccess = { "Modelo importado y validado correctamente. Se cargará al enviar la primera pregunta." },
+                onFailure = { "No se pudo importar el modelo: ${it.message ?: "error de archivo"}. El modelo anterior se conserva si ya había uno instalado." }
             )
             tempFile?.takeIf { it.exists() }?.delete()
             mainHandler.post { onResult(result.isSuccess, message) }
         }
     }
-
     fun reply(
         context: Context,
         question: String,
@@ -114,9 +139,13 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
 
         executor.execute {
             val result = runCatching {
-                val path = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .getString(MODEL_PATH, null)
+                val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                val savedPath = prefs.getString(MODEL_PATH, null)
+                val recoveredFile = recoverModelFile(app)
+                val path = savedPath?.takeIf { File(it).isFile }
+                    ?: recoveredFile.takeIf { it.isFile }?.absolutePath
                     ?: error("Aún no has importado el modelo generativo local. Descarga el archivo .litertlm e impórtalo desde el botón «Importar modelo».")
+                if (savedPath != path) prefs.edit().putString(MODEL_PATH, path).apply()
                 val historyForInitialization = previousMessages.toMutableList().apply {
                     val currentQuestionIndex = indexOfLast { it == "Tú: $question" }
                     if (currentQuestionIndex >= 0) removeAt(currentQuestionIndex)
@@ -153,6 +182,50 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
         }
     }
 
+    private fun recoverModelFile(context: Context): File {
+        val modelDirectory = File(context.filesDir, MODEL_DIR)
+        val target = File(modelDirectory, "assistant.litertlm")
+        val backup = File(modelDirectory, "assistant.litertlm.backup")
+        if (!target.exists() && backup.exists()) {
+            backup.renameTo(target)
+        } else if (target.exists() && backup.exists()) {
+            backup.delete()
+        }
+        return target
+    }
+
+    private fun validateModelFile(context: Context, modelFile: File) {
+        var lastError: Throwable? = null
+        for (useGpu in listOf(true, false)) {
+            val candidateEngine = Engine(
+                EngineConfig(
+                    modelPath = modelFile.absolutePath,
+                    backend = if (useGpu) Backend.GPU() else Backend.CPU(),
+                    cacheDir = context.cacheDir.path
+                )
+            )
+            var initialized = false
+            var candidateConversation: Conversation? = null
+            try {
+                candidateEngine.initialize()
+                initialized = true
+                candidateConversation = candidateEngine.createConversation()
+                candidateConversation.close()
+                candidateConversation = null
+                return
+            } catch (error: Throwable) {
+                lastError = error
+            } finally {
+                runCatching { candidateConversation?.close() }
+                if (initialized) runCatching { candidateEngine.close() }
+            }
+        }
+        throw IllegalArgumentException(
+            "LiteRT-LM no pudo inicializar este archivo ni crear una conversación.",
+            lastError
+        )
+    }
+
     private fun ensureLoaded(context: Context, path: String, history: List<String>, useGpu: Boolean) {
         if (conversation != null && loadedPath == path && loadedBackendIsGpu == useGpu) return
         releaseLoadedModel()
@@ -167,8 +240,10 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 cacheDir = context.cacheDir.path
             )
         )
+        var initialized = false
         try {
             newEngine.initialize()
+            initialized = true
             val initialMessages = history.asSequence()
                 .filter { it.startsWith("Tú:") || it.startsWith("VIP:") }
                 .filterNot { it.contains("Consultando...") }
@@ -192,7 +267,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             loadedPath = path
             loadedBackendIsGpu = useGpu
         } catch (error: Throwable) {
-            runCatching { newEngine.close() }
+            if (initialized) runCatching { newEngine.close() }
             throw error
         }
     }
