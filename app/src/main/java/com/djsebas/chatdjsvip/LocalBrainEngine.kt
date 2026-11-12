@@ -233,7 +233,7 @@ object LocalBrainEngine {
         }.filter { it.second > 0 }.sortedByDescending { it.second }
         if (matches.isEmpty()) return "No encontré una ficha local suficiente para ese tema."
         return if (matches.size == 1) matches.first().first.answer
-        else matches.joinToString("\\n\\n") { it.first.answer }
+        else matches.joinToString("\n\n") { it.first.answer }
     }
 
     private fun appDevelopmentGuide(q: String): String =
