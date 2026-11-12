@@ -16,3 +16,19 @@ internal fun nextTrackAfterCompletion(
     val nextIndex = activeQueue.indexOf(completedUri) + 1
     return activeQueue.getOrNull(nextIndex)
 }
+
+/** Añade una pista válida al final de la cola sin duplicados. */
+internal fun addTrackToPlaybackQueue(
+    currentUri: String?,
+    queue: List<String>,
+    library: List<String>,
+    selectedUri: String
+): List<String> {
+    if (selectedUri !in library) return queue
+    val validQueue = queue.filter { it in library }.distinct()
+    val baseQueue = validQueue.ifEmpty {
+        listOfNotNull(currentUri?.takeIf { it in library })
+    }
+    if (selectedUri in baseQueue) return baseQueue
+    return baseQueue + selectedUri
+}
