@@ -51,10 +51,14 @@ object ProjectZipExporter {
 
                     projectFiles.forEach { file ->
                         val safePath = sanitize(file.path, count, "")
-                        require(file.content.toByteArray(Charsets.UTF_8).size <= 512 * 1024) {
-                            "El archivo supera el límite de 512 KB: ${file.path}"
+                        val binaryWrapper = ProjectZipBinaryFileCodec.decodeGradleWrapper(file.path, file.content)
+                        val fileBytes = binaryWrapper ?: file.content.toByteArray(Charsets.UTF_8)
+                        if (binaryWrapper == null) {
+                            require(fileBytes.size <= 512 * 1024) {
+                                "El archivo supera el límite de 512 KB: ${file.path}"
+                            }
                         }
-                        addFile(safePath, file.content.toByteArray(Charsets.UTF_8))
+                        addFile(safePath, fileBytes)
                     }
 
                     if (markdown.isNotBlank()) {
