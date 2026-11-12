@@ -16,7 +16,7 @@ data class ProjectBuildReport(
 
 object ProjectBuildValidator {
     fun validate(files: List<ImportedProjectFile>): ProjectBuildReport {
-        val paths = files.map { it.path.replace('\\\\', '/').lowercase() }.toSet()
+        val paths = files.map { it.path.replace('\\', '/').lowercase() }.toSet()
         fun has(vararg candidates: String) = candidates.any { it.lowercase() in paths }
         val settings = has("settings.gradle", "settings.gradle.kts")
         val rootBuild = has("build.gradle", "build.gradle.kts")
