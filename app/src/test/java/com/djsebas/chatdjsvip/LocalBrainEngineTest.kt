@@ -72,11 +72,11 @@ class LocalBrainEngineTest {
 
     @Test fun keepsUnknownTopicsHonestAfterKnowledgeExpansion() {
         val answer = LocalBrainEngine.answerLocally("Explícame física cuántica avanzada", emptyList(), "")
-        assertTrue(answer.contains("No tengo una ficha de conocimiento local suficiente"))
+        assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
     }
 
     @Test fun doesNotPretendUnknownTopicsAreKnown() {
         val answer = LocalBrainEngine.answerLocally("Explícame un tema que no está en la base", emptyList(), "")
-        assertTrue(answer.contains("No tengo una ficha de conocimiento local suficiente"))
+        assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
     }
 }
