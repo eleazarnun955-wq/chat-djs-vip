@@ -3,7 +3,7 @@ package com.djsebas.chatdjsvip
 import android.content.Context
 import android.net.Uri
 import java.io.ByteArrayOutputStream
-import android.util.Base64
+import java.util.Base64
 import java.util.zip.ZipInputStream
 
 data class ImportedProjectFile(val path: String, val content: String)
@@ -18,11 +18,11 @@ object ProjectZipBinaryFileCodec {
         path.replace('\\', '/').equals("gradle/wrapper/gradle-wrapper.jar", ignoreCase = true)
 
     fun encodeGradleWrapper(bytes: ByteArray): String =
-        PREFIX + Base64.encodeToString(bytes, Base64.NO_WRAP)
+        PREFIX + Base64.getEncoder().encodeToString(bytes)
 
     fun decodeGradleWrapper(path: String, content: String): ByteArray? {
         if (!isGradleWrapperJar(path) || !content.startsWith(PREFIX)) return null
-        return runCatching { Base64.decode(content.removePrefix(PREFIX), Base64.DEFAULT) }.getOrNull()
+        return runCatching { Base64.getDecoder().decode(content.removePrefix(PREFIX)) }.getOrNull()
     }
 }
 
