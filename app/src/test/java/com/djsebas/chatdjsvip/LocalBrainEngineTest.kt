@@ -42,6 +42,33 @@ class LocalBrainEngineTest {
         assertEquals("", saved)
     }
 
+    @Test fun recognizesExpandedOfflineTechnicalTopics() {
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Qué es Python?"))
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("Explícame qué es una API"))
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Para qué sirve Jetpack Compose?"))
+        assertEquals(LocalBrainIntent.KNOWN_TOPIC, LocalBrainEngine.classifyIntent("¿Qué diferencia hay entre WAV y MP3?"))
+    }
+
+    @Test fun providesHonestLimitsForOfflineGenerativeModels() {
+        val answer = LocalBrainEngine.answerLocally("¿Cómo funciona un LLM local offline?", emptyList(), "")
+        assertTrue(answer.contains("no equivale a un modelo generativo"))
+        assertTrue(answer.contains("RAM"))
+    }
+
+    @Test fun recognizesMoreAppDevelopmentRequests() {
+        assertEquals(LocalBrainIntent.APP_DEVELOPMENT, LocalBrainEngine.classifyIntent("Ayúdame a depurar código"))
+        assertEquals(LocalBrainIntent.APP_DEVELOPMENT, LocalBrainEngine.classifyIntent("Quiero generar APK"))
+    }
+
+    @Test fun routesAudioMasteringQuestionsToDjKnowledge() {
+        assertEquals(LocalBrainIntent.DJ, LocalBrainEngine.classifyIntent("¿Cómo hago la masterización y evito clipping?"))
+    }
+
+    @Test fun keepsUnknownTopicsHonestAfterKnowledgeExpansion() {
+        val answer = LocalBrainEngine.answerLocally("Explícame física cuántica avanzada", emptyList(), "")
+        assertTrue(answer.contains("No tengo una ficha de conocimiento local suficiente"))
+    }
+
     @Test fun doesNotPretendUnknownTopicsAreKnown() {
         val answer = LocalBrainEngine.answerLocally("Explícame un tema que no está en la base", emptyList(), "")
         assertTrue(answer.contains("No tengo una ficha de conocimiento local suficiente"))
