@@ -833,31 +833,70 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 if (activeQueue.isEmpty()) {
                     Text("No hay canciones disponibles en la cola.")
                 } else {
-                    LazyColumn(modifier = Modifier.heightIn(max = 360.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(activeQueue) { queuedUri ->
-                            val queued = Uri.parse(queuedUri)
-                            val queuedTitle = runCatching {
-                                context.contentResolver.query(queued, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                                    if (cursor.moveToFirst()) cursor.getString(0) else null
-                                }
-                            }.getOrNull() ?: queued.lastPathSegment?.substringAfterLast('/') ?: "Audio"
-                            Surface(
-                                color = if (queuedUri == currentUri) Color(0xFF174C43) else Panel,
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    playbackQueue = activeQueue
-                                    playTrack(queuedUri, queuedTitle)
-                                    showQueueDialog = false
-                                }
-                            ) {
-                                Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        if (queuedUri == currentUri) Icons.Default.Equalizer else Icons.Default.MusicNote,
-                                        contentDescription = null,
-                                        tint = Accent
-                                    )
-                                    Text(queuedTitle, Modifier.weight(1f).padding(start = 10.dp), maxLines = 1)
-                                    if (queuedUri == currentUri) Text("Ahora", color = Accent, fontSize = 11.sp)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(
+                                onClick = {
+                                    playbackQueue = listOfNotNull(currentUri)
+                                    android.widget.Toast.makeText(context, "Se quitaron las canciones pendientes", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                enabled = activeQueue.any { it != currentUri }
+                            ) { Text("Vaciar pendientes", color = Accent) }
+                        }
+                        LazyColumn(modifier = Modifier.heightIn(max = 320.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(activeQueue) { queuedUri ->
+                                val queueIndex = activeQueue.indexOf(queuedUri)
+                                val queued = Uri.parse(queuedUri)
+                                val queuedTitle = runCatching {
+                                    context.contentResolver.query(queued, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                                        if (cursor.moveToFirst()) cursor.getString(0) else null
+                                    }
+                                }.getOrNull() ?: queued.lastPathSegment?.substringAfterLast('/') ?: "Audio"
+                                Surface(
+                                    color = if (queuedUri == currentUri) Color(0xFF174C43) else Panel,
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(Modifier.padding(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f).clickable {
+                                            playbackQueue = activeQueue
+                                            playTrack(queuedUri, queuedTitle)
+                                            showQueueDialog = false
+                                        }.padding(6.dp)) {
+                                            Text(queuedTitle, maxLines = 1)
+                                            if (queuedUri == currentUri) Text("Reproduciendo", color = Accent, fontSize = 10.sp)
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                val reordered = activeQueue.toMutableList()
+                                                if (queueIndex > 0) {
+                                                    val item = reordered.removeAt(queueIndex)
+                                                    reordered.add(queueIndex - 1, item)
+                                                    playbackQueue = reordered
+                                                }
+                                            },
+                                            enabled = queueIndex > 0
+                                        ) { Icon(Icons.Default.KeyboardArrowUp, "Subir", tint = Accent) }
+                                        IconButton(
+                                            onClick = {
+                                                val reordered = activeQueue.toMutableList()
+                                                if (queueIndex < reordered.lastIndex) {
+                                                    val item = reordered.removeAt(queueIndex)
+                                                    reordered.add(queueIndex + 1, item)
+                                                    playbackQueue = reordered
+                                                }
+                                            },
+                                            enabled = queueIndex < activeQueue.lastIndex
+                                        ) { Icon(Icons.Default.KeyboardArrowDown, "Bajar", tint = Accent) }
+                                        IconButton(
+                                            onClick = {
+                                                if (queuedUri != currentUri) {
+                                                    playbackQueue = activeQueue.filterNot { it == queuedUri }
+                                                }
+                                            },
+                                            enabled = queuedUri != currentUri
+                                        ) { Icon(Icons.Default.Close, "Quitar de la cola", tint = Muted) }
+                                    }
                                 }
                             }
                         }
