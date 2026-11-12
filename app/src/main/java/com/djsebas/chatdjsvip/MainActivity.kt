@@ -456,6 +456,10 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         playbackQueue.forEach { json.put(it) }
         prefs.edit().putString("audio_playback_queue", json.toString()).apply()
     }
+    LaunchedEffect(tracks) {
+        val validQueue = restorePlaybackQueue(playbackQueue, tracks)
+        if (validQueue != playbackQueue) playbackQueue = validQueue
+    }
     val latestCurrentUri by rememberUpdatedState(currentUri)
     val latestPlaybackQueue by rememberUpdatedState(playbackQueue)
 
