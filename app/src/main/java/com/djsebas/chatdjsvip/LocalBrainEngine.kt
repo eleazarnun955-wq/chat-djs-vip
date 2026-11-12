@@ -266,8 +266,8 @@ object LocalBrainEngine {
         val previousTopic = history.asReversed().firstOrNull { it.startsWith("Tú:") }
             ?.removePrefix("Tú:")?.trim().orEmpty()
         val facts = memory.lines().filter { it.isNotBlank() }.takeLast(5).joinToString("; ")
-        return "No tengo una ficha de conocimiento local suficiente para responder eso con fiabilidad.\n" +
-            "Puedo trabajar sin internet con guías DJ, conceptos básicos de desarrollo, análisis estructurado y memoria local.\n" +
+        return "Todavía no tengo un modelo generativo universal instalado para responder esa pregunta.\n" +
+            "Importa el archivo Qwen3-0.6B .litertlm desde el botón «Importar modelo» para activar respuestas generales sin conexión.\n" +
             (if (previousTopic.isNotBlank() && normalize(previousTopic) != normalize(q)) "Tema reciente: " + previousTopic + "\n" else "") +
             (if (facts.isNotBlank()) "Datos que guardaste: " + facts + "\n" else "") +
             "Para evitar inventar, comparte un poco más de contexto o el texto que quieres que analice."
