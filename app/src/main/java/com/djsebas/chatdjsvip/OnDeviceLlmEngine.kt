@@ -78,6 +78,8 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 check(modelDirectory.exists() || modelDirectory.mkdirs()) {
                     "No se pudo preparar el almacenamiento privado para el modelo."
                 }
+                // Recupera primero una copia anterior si una ejecución previa se interrumpió.
+                recoverModelFile(app)
                 if (staged.exists()) {
                     check(staged.delete()) { "No se pudo limpiar una importación incompleta anterior." }
                 }
@@ -235,19 +237,21 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
     private fun validateModelFile(context: Context, modelFile: File) {
         var lastError: Throwable? = null
         for (useGpu in listOf(true, false)) {
-            val candidateEngine = Engine(
-                EngineConfig(
-                    modelPath = modelFile.absolutePath,
-                    backend = if (useGpu) Backend.GPU() else Backend.CPU(),
-                    cacheDir = context.cacheDir.path
-                )
-            )
+            var candidateEngine: Engine? = null
             var initialized = false
             var candidateConversation: Conversation? = null
             try {
-                candidateEngine.initialize()
+                val createdEngine = Engine(
+                    EngineConfig(
+                        modelPath = modelFile.absolutePath,
+                        backend = if (useGpu) Backend.GPU() else Backend.CPU(),
+                        cacheDir = context.cacheDir.path
+                    )
+                )
+                candidateEngine = createdEngine
+                createdEngine.initialize()
                 initialized = true
-                candidateConversation = candidateEngine.createConversation()
+                candidateConversation = createdEngine.createConversation()
                 candidateConversation.close()
                 candidateConversation = null
                 return
@@ -256,7 +260,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 lastError = error
             } finally {
                 runCatching { candidateConversation?.close() }
-                if (initialized) runCatching { candidateEngine.close() }
+                if (initialized) runCatching { candidateEngine?.close() }
             }
         }
         throw IllegalArgumentException(
