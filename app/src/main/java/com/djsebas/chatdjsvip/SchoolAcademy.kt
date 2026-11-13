@@ -100,6 +100,16 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier) {
     var quizChoice by remember { mutableIntStateOf(-1) }
     var quizFeedback by remember { mutableStateOf("") }
     var resultMessage by remember { mutableStateOf<String?>(null) }
+    var practicalOpen by remember { mutableStateOf(false) }
+    var practicalChecks by remember { mutableStateOf(setOf<Int>()) }
+    var practicalResult by remember { mutableStateOf<String?>(null) }
+    val practicalSteps = listOf(
+        "Prepara la pista entrante y confirma que el archivo y la salida de audio funcionan.",
+        "Preescucha con CUE en audífonos sin enviar todavía la pista al público.",
+        "Ajusta BPM y comprueba el beatmatch escuchando varios compases.",
+        "Ajusta la ganancia de entrada evitando que los medidores lleguen a rojo.",
+        "Alinea el fraseo, realiza la transición y verifica que el Master no distorsione."
+    )
     val modelReady = remember(context) { OnDeviceLlmEngine.hasInstalledModel(context) }
 
     fun saveCompleted(updated: Set<String>) {
@@ -248,6 +258,11 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier) {
             },
             confirmButton = {
                 Column(horizontalAlignment = Alignment.End) {
+                    TextButton(onClick = {
+                        practicalChecks = emptySet()
+                        practicalResult = null
+                        practicalOpen = true
+                    }) { Text("Iniciar evaluación práctica") }
                     TextButton(
                         enabled = studentQuestion.isNotBlank() && !askingTeacher,
                         onClick = {
@@ -280,6 +295,48 @@ Responde paso a paso y propone una práctica verificable. No inventes botones, c
                 }
             },
             dismissButton = { TextButton(onClick = { if (!askingTeacher) selectedTopic = null }) { Text("Cerrar") } },
+            containerColor = Panel, titleContentColor = Color.White, textContentColor = Color.White
+        )
+    }
+
+    if (practicalOpen) {
+        AlertDialog(
+            onDismissRequest = { practicalOpen = false },
+            title = { Text("Evaluación práctica DJ") },
+            text = {
+                Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState())) {
+                    Text("Simulación: prepara y mezcla una pista entrante de forma segura. Marca cada acción solo cuando la hayas realizado.", color = Color.White, fontSize = 13.sp)
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(progress = { practicalChecks.size / 5f }, modifier = Modifier.fillMaxWidth(), color = Accent, trackColor = Ink)
+                    Text("Pasos completados: ${practicalChecks.size}/5", color = Accent, fontWeight = FontWeight.Bold)
+                    practicalSteps.forEachIndexed { index, step ->
+                        Row(Modifier.fillMaxWidth().clickable {
+                            practicalChecks = if (index in practicalChecks) practicalChecks - index else practicalChecks + index
+                        }.padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = index in practicalChecks, onCheckedChange = { checked ->
+                                practicalChecks = if (checked) practicalChecks + index else practicalChecks - index
+                            })
+                            Text(step, color = Color.White, fontSize = 12.sp)
+                        }
+                    }
+                    practicalResult?.let {
+                        Surface(color = Color(0xFF123D36), shape = RoundedCornerShape(10.dp)) {
+                            Text(it, Modifier.padding(10.dp), color = Color.White, fontSize = 13.sp)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val score = practicalChecks.size * 20
+                    practicalResult = "Calificación práctica: $score/100. " + when {
+                        score == 100 -> "Excelente: completaste todos los pasos de la mezcla."
+                        score >= 70 -> "Buen trabajo. Repasa los pasos que faltaron y vuelve a practicar."
+                        else -> "Necesitas practicar la preparación, el control de niveles y la transición antes de repetir."
+                    }
+                }) { Text("Calificar práctica") }
+            },
+            dismissButton = { TextButton(onClick = { practicalOpen = false }) { Text("Cerrar") } },
             containerColor = Panel, titleContentColor = Color.White, textContentColor = Color.White
         )
     }
