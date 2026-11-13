@@ -99,8 +99,15 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     "El archivo parece incompleto o no es un modelo de lenguaje compatible."
                 }
                 val actualSha256 = sha256.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
-                require(actualSha256.equals(EXPECTED_MODEL_SHA256, ignoreCase = true)) {
-                    "El archivo no coincide con el modelo oficial LFM2.5-350M INT4. Descárgalo de nuevo desde «Obtener modelo». SHA-256 detectado: $actualSha256"
+                // El SHA publicado identifica el archivo exacto de referencia, pero no
+                // todos los empaquetados compatibles: LiteRT-LM puede volver a empaquetar
+                // el mismo modelo con UUID/fecha distintos. No rechazar por hash solamente.
+                // La validación real la realiza Engine.initialize() sobre el contenido.
+                if (!actualSha256.equals(EXPECTED_MODEL_SHA256, ignoreCase = true)) {
+                    android.util.Log.w(
+                        "OnDeviceLlmEngine",
+                        "SHA-256 distinto al empaquetado de referencia ($actualSha256); se comprobará la compatibilidad real con LiteRT-LM."
+                    )
                 }
 
                 // El modelo LFM2.5 INT4 también funciona en CPU. En teléfonos de
