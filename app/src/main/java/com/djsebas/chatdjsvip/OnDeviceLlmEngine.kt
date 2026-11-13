@@ -57,7 +57,14 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
     fun importModel(context: Context, uri: Uri, onResult: (Boolean, String) -> Unit) {
         val app = context.applicationContext
         executor.execute {
-            var tempFile: File? = null
+            val modelDirectory = File(app.filesDir, MODEL_DIR)
+            val target = File(modelDirectory, "assistant.litertlm")
+            val backup = File(modelDirectory, "assistant.litertlm.backup")
+            val staged = File(modelDirectory, "assistant.litertlm.part")
+            var previousModelMoved = false
+            var newModelPlaced = false
+            var settingsSaved = false
+
             val result = runCatching {
                 val displayName = app.contentResolver.query(
                     uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
@@ -65,58 +72,88 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     if (cursor.moveToFirst()) cursor.getString(0) else null
                 }.orEmpty()
                 require(displayName.endsWith(".litertlm", ignoreCase = true)) {
-                    "Selecciona un archivo de modelo .litertlm."
+                    "Selecciona el archivo de modelo .litertlm. No se aceptan ZIP, APK ni archivos renombrados."
                 }
 
-                val modelDirectory = File(app.filesDir, MODEL_DIR).apply { mkdirs() }
-                val target = File(modelDirectory, "assistant.litertlm")
-                val backup = File(modelDirectory, "assistant.litertlm.backup")
-                if (!target.exists() && backup.exists()) {
-                    check(backup.renameTo(target)) { "No se pudo recuperar el modelo anterior." }
-                } else if (target.exists() && backup.exists()) {
-                    check(backup.delete()) { "No se pudo limpiar una copia anterior del modelo." }
+                check(modelDirectory.exists() || modelDirectory.mkdirs()) {
+                    "No se pudo preparar el almacenamiento privado para el modelo."
+                }
+                if (staged.exists()) {
+                    check(staged.delete()) { "No se pudo limpiar una importación incompleta anterior." }
+                }
+                if (target.exists() && backup.exists()) {
+                    check(backup.delete()) { "No se pudo limpiar una copia de respaldo antigua." }
                 }
 
-                val staged = File(modelDirectory, "assistant.litertlm.part")
-                tempFile = staged
                 app.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(staged).use { output -> input.copyTo(output) }
+                    FileOutputStream(staged).use { output ->
+                        input.copyTo(output)
+                        output.fd.sync()
+                    }
                 } ?: error("No se pudo leer el archivo seleccionado.")
-                require(staged.length() > 50L * 1024L * 1024L) {
-                    "El archivo parece incompleto o no es un modelo de lenguaje."
+                require(staged.isFile && staged.length() > 50L * 1024L * 1024L) {
+                    "El archivo parece incompleto o no es un modelo de lenguaje compatible."
                 }
 
+                // Validar el archivo temporal antes de tocar el modelo que ya funciona.
                 validateModelFile(app, staged)
                 releaseLoadedModel()
 
                 if (target.exists()) {
-                    check(target.renameTo(backup)) { "No se pudo proteger el modelo anterior." }
+                    check(target.renameTo(backup)) {
+                        "No se pudo proteger el cerebro anterior. No se reemplazó."
+                    }
+                    previousModelMoved = true
                 }
-                if (!staged.renameTo(target)) {
-                    if (backup.exists()) backup.renameTo(target)
-                    error("No se pudo colocar el nuevo modelo. Se conservó el anterior.")
+                check(staged.renameTo(target)) {
+                    "No se pudo colocar el nuevo modelo en el almacenamiento privado."
                 }
+                newModelPlaced = true
 
                 val saved = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putString(MODEL_PATH, target.absolutePath)
                     .commit()
-                if (!saved) {
-                    target.delete()
-                    if (backup.exists()) backup.renameTo(target)
-                    error("No se pudo guardar la configuración. Se restauró el modelo anterior.")
-                }
+                check(saved) { "No se pudo guardar la configuración del nuevo modelo." }
+                settingsSaved = true
+
+                // La copia anterior solo se elimina después de confirmar el nuevo ajuste.
                 if (backup.exists()) backup.delete()
                 target.absolutePath
+            }.recoverCatching { error ->
+                // Revertir el cambio si falla el movimiento o el guardado de preferencias.
+                val rollback = runCatching {
+                    if (!settingsSaved && newModelPlaced && target.exists()) {
+                        check(target.delete()) { "No se pudo retirar el modelo incompleto." }
+                    }
+                    if (!settingsSaved && previousModelMoved && backup.exists()) {
+                        check(backup.renameTo(target)) {
+                            "No se pudo restaurar automáticamente el cerebro anterior."
+                        }
+                    }
+                }
+                val rollbackError = rollback.exceptionOrNull()
+                if (rollbackError != null) {
+                    throw IllegalStateException(
+                        "${error.message ?: "Falló la importación"} Además, la recuperación automática necesita atención: ${rollbackError.message}",
+                        error
+                    )
+                }
+                throw error
             }
 
+            if (staged.exists()) staged.delete()
             val message = result.fold(
-                onSuccess = { "Modelo importado y validado correctamente. Se cargará al enviar la primera pregunta." },
-                onFailure = { "No se pudo importar el modelo: ${it.message ?: "error de archivo"}. El modelo anterior se conserva si ya había uno instalado." }
+                onSuccess = {
+                    "Cerebro local importado y validado. El modelo anterior solo se reemplazó después de comprobar el archivo. Envía una pregunta para iniciar la primera respuesta."
+                },
+                onFailure = {
+                    "No se pudo importar el cerebro local: ${it.message ?: "error de archivo"}. Si ya había un modelo instalado, se intentó conservarlo o restaurarlo."
+                }
             )
-            tempFile?.takeIf { it.exists() }?.delete()
             mainHandler.post { onResult(result.isSuccess, message) }
         }
     }
+
     fun reply(
         context: Context,
         question: String,
@@ -155,6 +192,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     try {
                         ensureLoaded(app, path, historyForInitialization, useGpu = true)
                     } catch (gpuLoadError: Throwable) {
+                        if (isMemoryExhaustion(gpuLoadError)) throw gpuLoadError
                         ensureLoaded(app, path, historyForInitialization, useGpu = false)
                     }
                 }
@@ -165,7 +203,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 try {
                     checkNotNull(conversation).sendMessage(modelPrompt).toString()
                 } catch (gpuReplyError: Throwable) {
-                    if (loadedBackendIsGpu == true) {
+                    if (loadedBackendIsGpu == true && !isMemoryExhaustion(gpuReplyError)) {
                         releaseLoadedModel()
                         ensureLoaded(app, path, historyForInitialization, useGpu = false)
                         checkNotNull(conversation).sendMessage(modelPrompt).toString()
@@ -214,6 +252,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 candidateConversation = null
                 return
             } catch (error: Throwable) {
+                if (isMemoryExhaustion(error)) throw error
                 lastError = error
             } finally {
                 runCatching { candidateConversation?.close() }
@@ -270,6 +309,15 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             if (initialized) runCatching { newEngine.close() }
             throw error
         }
+    }
+
+    private fun isMemoryExhaustion(error: Throwable): Boolean {
+        var current: Throwable? = error
+        repeat(8) {
+            if (current is OutOfMemoryError) return true
+            current = current?.cause
+        }
+        return false
     }
 
     private fun releaseLoadedModel() {
