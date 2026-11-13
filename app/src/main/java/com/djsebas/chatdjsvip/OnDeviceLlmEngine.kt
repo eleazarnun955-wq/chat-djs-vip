@@ -111,9 +111,8 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     )
                 }
 
-                // El modelo LFM2.5 INT4 también funciona en CPU. En teléfonos de
-                // entrada evitamos inicializar OpenCL durante la importación: un
-                // fallo nativo del controlador GPU puede cerrar la app sin excepción.
+                // Se valida con CPU primero y GPU como alternativa compatible con
+                // los bundles LFM2.5 que guardan pesos externos.
                 releaseLoadedModel()
                 val selectedBackend = validateModelFile(app, staged)
 
@@ -208,8 +207,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     removeAll { it.contains("Consultando...") }
                 }
                 if (conversation == null || loadedPath != path) {
-                    // El modelo es pequeño y el backend CPU es el camino más estable
-                    // para el Moto G24; evitamos que un driver OpenCL defectuoso cierre el proceso.
+                    // Reutilizar el backend que superó la validación de importación.
                     val backend = prefs.getString(MODEL_BACKEND, "CPU") ?: "CPU"
                     ensureLoaded(app, path, historyForInitialization, useGpu = backend == "GPU")
                 }
@@ -257,15 +255,16 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
     }
 
     private fun initializeProbe(context: Context, modelFile: File, useGpu: Boolean): Throwable? {
-        val candidateEngine = Engine(
-            EngineConfig(
-                modelPath = modelFile.absolutePath,
-                backend = if (useGpu) Backend.GPU() else Backend.CPU(),
-                cacheDir = context.cacheDir.path
-            )
-        )
+        var candidateEngine: Engine? = null
         var initialized = false
         return try {
+            candidateEngine = Engine(
+                EngineConfig(
+                    modelPath = modelFile.absolutePath,
+                    backend = if (useGpu) Backend.GPU() else Backend.CPU(),
+                    cacheDir = context.cacheDir.path
+                )
+            )
             candidateEngine.initialize()
             initialized = true
             null
@@ -273,7 +272,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             error
         } finally {
             // LiteRT-LM exige no cerrar un Engine cuya inicialización falló.
-            if (initialized) runCatching { candidateEngine.close() }
+            if (initialized) runCatching { candidateEngine?.close() }
         }
     }
 
