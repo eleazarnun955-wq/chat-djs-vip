@@ -134,13 +134,19 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var modelInstalled by remember { mutableStateOf(OnDeviceLlmEngine.hasInstalledModel(context)) }
     var importingModel by remember { mutableStateOf(false) }
+    var importError by remember { mutableStateOf<String?>(null) }
     val modelPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             importingModel = true
             OnDeviceLlmEngine.importModel(context, uri) { success, message ->
                 importingModel = false
                 modelInstalled = success || OnDeviceLlmEngine.hasInstalledModel(context)
-                android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                if (success) {
+                    importError = null
+                    android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                } else {
+                    importError = message
+                }
             }
         }
     }
@@ -291,6 +297,27 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             }
             IconButton(onClick = { send(prompt, selectedImage); selectedImage = null }) { Icon(Icons.Default.Send, "Enviar", tint = Accent) }
         }
+    }
+    importError?.let { diagnostic ->
+        AlertDialog(
+            onDismissRequest = { importError = null },
+            title = { Text("No se pudo activar el cerebro local") },
+            text = { Text(diagnostic) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val share = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Diagnóstico CHAT DJ\u0027S VIP")
+                        putExtra(Intent.EXTRA_TEXT, diagnostic)
+                    }
+                    runCatching { context.startActivity(Intent.createChooser(share, "Compartir diagnóstico")) }
+                }) { Text("Compartir diagnóstico") }
+            },
+            dismissButton = {
+                TextButton(onClick = { importError = null }) { Text("Cerrar") }
+            },
+            containerColor = Panel
+        )
     }
 }
 
