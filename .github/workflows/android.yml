@@ -25,6 +25,8 @@ jobs:
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
       - name: Read app version
         id: app-version
         run: |
@@ -52,6 +54,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: chat-dj-vip-${{ env.APP_VERSION }}-build-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
           name: CHAT DJ'S VIP ${{ env.APP_VERSION }} - Actualización
           body: CHAT DJ'S VIP ${{ env.APP_VERSION }}. Compilación validada con pruebas unitarias y Android Lint. Conserva el paquete y la firma de la instalación existente.
           files: app/build/outputs/apk/debug/app-debug.apk
