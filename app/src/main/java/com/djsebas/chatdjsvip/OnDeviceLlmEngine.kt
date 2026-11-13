@@ -246,30 +246,50 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
     }
 
     private fun validateModelFile(context: Context, modelFile: File) {
-        // La importación comprueba el motor con CPU y NO crea una conversación.
-        // Algunos templates LiteRT-LM fallan al preparar el preámbulo si se crea
-        // una conversación vacía; eso no significa que el archivo esté dañado.
-        // La selección GPU/CPU para responder se hace después, en ensureLoaded().
-        val candidateEngine = Engine(
-            EngineConfig(
-                modelPath = modelFile.absolutePath,
-                backend = Backend.CPU(),
-                cacheDir = context.cacheDir.path
-            )
+        // Los modelos LFM2.5 recientes guardan pesos externos TFLiteWeights.
+        // Probamos primero GPU (ruta validada para estos archivos en Android)
+        // y después CPU para equipos sin OpenCL o con GPU no compatible.
+        val backends = listOf(
+            "GPU" to Backend.GPU(),
+            "CPU" to Backend.CPU()
         )
-        var initialized = false
-        try {
-            candidateEngine.initialize()
-            initialized = true
-        } catch (error: Throwable) {
-            throw IllegalArgumentException(
-                "LiteRT-LM 0.19.1 no pudo inicializar el modelo en CPU: ${error.message ?: error.javaClass.simpleName}",
-                error
+        val failures = mutableListOf<String>()
+
+        for ((backendName, backend) in backends) {
+            val candidateEngine = Engine(
+                EngineConfig(
+                    modelPath = modelFile.absolutePath,
+                    backend = backend,
+                    cacheDir = context.cacheDir.path
+                )
             )
-        } finally {
-            // Engine.close() solo se invoca si initialize() terminó correctamente.
-            if (initialized) runCatching { candidateEngine.close() }
+            var initialized = false
+            try {
+                candidateEngine.initialize()
+                initialized = true
+                return
+            } catch (error: Throwable) {
+                failures += "$backendName: ${rootCauseMessage(error)}"
+            } finally {
+                // LiteRT-LM exige no cerrar un Engine cuya inicialización falló.
+                if (initialized) runCatching { candidateEngine.close() }
+            }
         }
+
+        throw IllegalArgumentException(
+            "El archivo se copió, pero LiteRT-LM no pudo abrirlo. " +
+                failures.joinToString(" | "),
+        )
+    }
+
+    private fun rootCauseMessage(error: Throwable): String {
+        var current = error
+        repeat(12) {
+            val next = current.cause ?: return current.message ?: current.javaClass.simpleName
+            if (next === current) return current.message ?: current.javaClass.simpleName
+            current = next
+        }
+        return current.message ?: current.javaClass.simpleName
     }
 
     private fun ensureLoaded(context: Context, path: String, history: List<String>, useGpu: Boolean) {
