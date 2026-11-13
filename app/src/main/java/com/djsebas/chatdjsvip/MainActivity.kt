@@ -212,7 +212,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
-                    Text("Qwen3 0.6B • 328 MB • respuestas locales", color = Muted, fontSize = 10.sp)
+                    Text("Gemma 3 270M • 304 MB • respuestas locales", color = Muted, fontSize = 10.sp)
                 }
                 TextButton(
                     onClick = { modelPicker.launch(arrayOf("*/*")) },
@@ -234,7 +234,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = {
                     runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm")))
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://huggingface.co/litert-community/gemma-3-270m-it/resolve/main/gemma3-270m-it-q8.litertlm")))
                     }
                 }) { Text("Obtener modelo") }
                 TextButton(
