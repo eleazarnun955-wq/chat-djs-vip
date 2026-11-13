@@ -58,11 +58,11 @@ fun ChatDjsVipApp() {
     var messages by remember {
         val stored = preferences.getString("messages", null)
         mutableStateOf(
-            if (stored.isNullOrBlank()) listOf("¡Hola! Soy CHAT DJ'S VIP con cerebro local. Puedo ayudarte con DJ, música y desarrollo de aplicaciones sin IA externa.")
+            if (stored.isNullOrBlank()) listOf("¡Hola! Soy CHAT DJ'S VIP, tu asistente universal local. Importa un modelo para responder preguntas generales sin conexión.")
             else runCatching {
                 val json = JSONArray(stored)
                 List(json.length()) { index -> json.getString(index) }
-            }.getOrElse { listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.") }
+            }.getOrElse { listOf("¡Hola! Soy CHAT DJ'S VIP. Importa un modelo local para activar conocimientos generales sin conexión.") }
         )
     }
     LaunchedEffect(messages) {
@@ -78,7 +78,7 @@ fun ChatDjsVipApp() {
             TopAppBar(title = {
                 Column {
                     Text("CHAT DJ'S VIP", fontWeight = FontWeight.Bold, fontSize = 19.sp)
-                    Text(if (section == "Chat") "Tu asistente inteligente" else "Aprende DJ desde cero", color = Muted, fontSize = 12.sp)
+                    Text(if (section == "Chat") "Asistente universal sin conexión" else "Aprende DJ desde cero", color = Muted, fontSize = 12.sp)
                 }
             }, navigationIcon = {
                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Accent, modifier = Modifier.padding(start = 16.dp).size(28.dp))
@@ -100,7 +100,7 @@ fun ChatDjsVipApp() {
                         val shownText = text.ifBlank { "Analiza esta imagen y explícame qué observas." }
                         messages = messages + "Tú: $shownText" + "VIP: Consultando..."
                         prompt = ""
-                        LocalBrainEngine.reply(context, shownText, messages, imageUri) { answer ->
+                        OnDeviceLlmEngine.reply(context, shownText, messages, imageUri) { answer ->
                             (context as? android.app.Activity)?.runOnUiThread {
                                 messages = messages.dropLast(1) + "VIP: $answer"
                             }
@@ -118,7 +118,7 @@ fun ChatDjsVipApp() {
                 title = { Text("Limpiar conversación") },
                 text = { Text("¿Quieres borrar el historial guardado de este chat? Esta acción no se puede deshacer.") },
                 confirmButton = { TextButton(onClick = {
-                    messages = listOf("¡Hola! Soy CHAT DJ'S VIP. Puedo ayudarte con tus dudas y enseñarte técnicas de DJ paso a paso.")
+                    messages = listOf("¡Hola! Soy CHAT DJ'S VIP. Importa el modelo local para activar conocimientos generales sin conexión.")
                     showClearChat = false
                 }) { Text("Borrar historial") } },
                 dismissButton = { TextButton(onClick = { showClearChat = false }) { Text("Cancelar") } },
@@ -132,6 +132,18 @@ fun ChatDjsVipApp() {
 private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String, Uri?) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    var modelInstalled by remember { mutableStateOf(OnDeviceLlmEngine.hasInstalledModel(context)) }
+    var importingModel by remember { mutableStateOf(false) }
+    val modelPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            importingModel = true
+            OnDeviceLlmEngine.importModel(context, uri) { success, message ->
+                importingModel = false
+                modelInstalled = success || OnDeviceLlmEngine.hasInstalledModel(context)
+                android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching {
@@ -191,13 +203,47 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
         if (messages.isNotEmpty()) chatListState.animateScrollToItem(messages.lastIndex)
     }
     Column(modifier.fillMaxSize().padding(14.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(
-                onClick = { exportChatLauncher.launch("Chat-DJs-VIP.txt") },
-                enabled = messages.isNotEmpty()
-            ) {
-                Icon(Icons.Default.FileDownload, contentDescription = null, tint = Accent)
-                Text("  Exportar conversación")
+        Column(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (modelInstalled) "Cerebro universal: modelo importado" else "Cerebro universal: falta instalar modelo",
+                        color = if (modelInstalled) Accent else Muted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text("Qwen3 0.6B • 328 MB • respuestas locales", color = Muted, fontSize = 10.sp)
+                }
+                TextButton(
+                    onClick = { modelPicker.launch(arrayOf("*/*")) },
+                    enabled = !importingModel
+                ) {
+                    if (importingModel) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Accent,
+                            strokeWidth = 2.dp
+                        )
+                        Text(" Importando…")
+                    } else {
+                        Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Accent)
+                        Text(" Importar modelo")
+                    }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B_dynamic_wi4b32_afp32.litertlm")))
+                    }
+                }) { Text("Obtener modelo") }
+                TextButton(
+                    onClick = { exportChatLauncher.launch("Chat-DJs-VIP.txt") },
+                    enabled = messages.isNotEmpty()
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null, tint = Accent)
+                    Text("  Exportar conversación")
+                }
             }
         }
         LazyColumn(state = chatListState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
