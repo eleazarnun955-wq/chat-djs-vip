@@ -26,6 +26,7 @@ import java.util.concurrent.Executors
 object OnDeviceLlmEngine {
     private const val PREFS = "chat_djs_vip_local_model"
     private const val MODEL_PATH = "model_path"
+    private const val MODEL_BACKEND = "model_backend"
     private const val MODEL_DIR = "models"
     // SHA-256 publicado para LFM2.5-350M_int4.litertlm por LiteRT Community.
     private const val EXPECTED_MODEL_SHA256 = "272b0a1ca55f8b39fe636927deffe4049feb93b5eda7c05a5dbbb3141d6d53f8"
@@ -110,11 +111,10 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     )
                 }
 
-                // El modelo LFM2.5 INT4 también funciona en CPU. En teléfonos de
-                // entrada evitamos inicializar OpenCL durante la importación: un
-                // fallo nativo del controlador GPU puede cerrar la app sin excepción.
+                // Se valida con CPU primero y GPU como alternativa compatible con
+                // los bundles LFM2.5 que guardan pesos externos.
                 releaseLoadedModel()
-                validateModelFile(app, staged)
+                val selectedBackend = validateModelFile(app, staged)
 
                 if (target.exists()) {
                     check(target.renameTo(backup)) {
@@ -129,6 +129,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
 
                 val saved = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putString(MODEL_PATH, target.absolutePath)
+                    .putString(MODEL_BACKEND, selectedBackend)
                     .commit()
                 check(saved) { "No se pudo guardar la configuración del nuevo modelo." }
                 settingsSaved = true
@@ -206,9 +207,9 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     removeAll { it.contains("Consultando...") }
                 }
                 if (conversation == null || loadedPath != path) {
-                    // El modelo es pequeño y el backend CPU es el camino más estable
-                    // para el Moto G24; evitamos que un driver OpenCL defectuoso cierre el proceso.
-                    ensureLoaded(app, path, historyForInitialization, useGpu = false)
+                    // Reutilizar el backend que superó la validación de importación.
+                    val backend = prefs.getString(MODEL_BACKEND, "CPU") ?: "CPU"
+                    ensureLoaded(app, path, historyForInitialization, useGpu = backend == "GPU")
                 }
                 val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
                     .getString("facts", "").orEmpty().lines().filter { it.isNotBlank() }.takeLast(10).joinToString("; ")
@@ -236,28 +237,42 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
         return target
     }
 
-    private fun validateModelFile(context: Context, modelFile: File) {
-        // CPU primero: evita cuelgues nativos de OpenCL en GPU móviles no probadas.
-        // LiteRT-LM soporta el backend CPU para este modelo.
-        val candidateEngine = Engine(
-            EngineConfig(
-                modelPath = modelFile.absolutePath,
-                backend = Backend.CPU(),
-                cacheDir = context.cacheDir.path
-            )
+    private fun validateModelFile(context: Context, modelFile: File): String {
+        // Probar CPU primero por su menor consumo de memoria. Si el runtime no
+        // puede abrir el bundle, probar GPU: los LFM2.5 actuales usan TFLiteWeights
+        // externos y requieren LiteRT-LM Android 0.19.0 o posterior.
+        val cpuError = initializeProbe(context, modelFile, useGpu = false)
+        if (cpuError == null) return "CPU"
+
+        val gpuError = initializeProbe(context, modelFile, useGpu = true)
+        if (gpuError == null) return "GPU"
+
+        throw IllegalArgumentException(
+            "No se pudo inicializar LFM2.5-350M INT4 con ninguno de los aceleradores. " +
+                "CPU: ${rootCauseMessage(cpuError)}. GPU: ${rootCauseMessage(gpuError)}",
+            gpuError
         )
+    }
+
+    private fun initializeProbe(context: Context, modelFile: File, useGpu: Boolean): Throwable? {
+        var candidateEngine: Engine? = null
         var initialized = false
-        try {
+        return try {
+            candidateEngine = Engine(
+                EngineConfig(
+                    modelPath = modelFile.absolutePath,
+                    backend = if (useGpu) Backend.GPU() else Backend.CPU(),
+                    cacheDir = context.cacheDir.path
+                )
+            )
             candidateEngine.initialize()
             initialized = true
+            null
         } catch (error: Throwable) {
-            throw IllegalArgumentException(
-                "LiteRT-LM 0.19.1 no pudo inicializar LFM2.5-350M INT4 en CPU: ${rootCauseMessage(error)}",
-                error
-            )
+            error
         } finally {
             // LiteRT-LM exige no cerrar un Engine cuya inicialización falló.
-            if (initialized) runCatching { candidateEngine.close() }
+            if (initialized) runCatching { candidateEngine?.close() }
         }
     }
 
