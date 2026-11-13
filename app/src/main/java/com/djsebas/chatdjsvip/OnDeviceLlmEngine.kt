@@ -71,10 +71,8 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 )?.use { cursor ->
                     if (cursor.moveToFirst()) cursor.getString(0) else null
                 }.orEmpty()
-                require(displayName.endsWith(".litertlm", ignoreCase = true)) {
-                    "Selecciona el archivo de modelo .litertlm. No se aceptan ZIP, APK ni archivos renombrados."
-                }
-
+                // No dependemos del nombre que reporte el proveedor SAF (Files/Descargas).
+                // La validación real la hace LiteRT-LM al inicializar el contenido copiado.
                 check(modelDirectory.exists() || modelDirectory.mkdirs()) {
                     "No se pudo preparar el almacenamiento privado para el modelo."
                 }
@@ -191,28 +189,14 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     removeAll { it.contains("Consultando...") }
                 }
                 if (conversation == null || loadedPath != path) {
-                    try {
-                        ensureLoaded(app, path, historyForInitialization, useGpu = true)
-                    } catch (gpuLoadError: Throwable) {
-                        if (isMemoryExhaustion(gpuLoadError)) throw gpuLoadError
-                        ensureLoaded(app, path, historyForInitialization, useGpu = false)
-                    }
+                    // Compatibilidad prioritaria: usar CPU en teléfonos sin OpenCL fiable.
+                    ensureLoaded(app, path, historyForInitialization, useGpu = false)
                 }
                 val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
                     .getString("facts", "").orEmpty().lines().filter { it.isNotBlank() }.takeLast(10).joinToString("; ")
                 val modelPrompt = if (savedFacts.isBlank()) question
                     else "$question\n\nContexto privado guardado localmente por el usuario: $savedFacts"
-                try {
-                    checkNotNull(conversation).sendMessage(modelPrompt).toString()
-                } catch (gpuReplyError: Throwable) {
-                    if (loadedBackendIsGpu == true && !isMemoryExhaustion(gpuReplyError)) {
-                        releaseLoadedModel()
-                        ensureLoaded(app, path, historyForInitialization, useGpu = false)
-                        checkNotNull(conversation).sendMessage(modelPrompt).toString()
-                    } else {
-                        throw gpuReplyError
-                    }
-                }
+                checkNotNull(conversation).sendMessage(modelPrompt).toString()
             }
             val answer = result.fold(
                 onSuccess = { it.ifBlank { "El modelo local no generó una respuesta. Intenta formular la pregunta de otra manera." } },
@@ -236,7 +220,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
 
     private fun validateModelFile(context: Context, modelFile: File) {
         var lastError: Throwable? = null
-        for (useGpu in listOf(true, false)) {
+        for (useGpu in listOf(false)) {
             var candidateEngine: Engine? = null
             var initialized = false
             var candidateConversation: Conversation? = null

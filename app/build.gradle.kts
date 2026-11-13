@@ -13,8 +13,8 @@ android {
         applicationId = "com.djsebas.chatdjsvip.v320"
         minSdk = 26
         targetSdk = 35
-        versionCode = 42
-        versionName = "3.7.0"
+        versionCode = 43
+        versionName = "3.7.1"
     }
 
     signingConfigs {
@@ -56,5 +56,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.1")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.18.0")
 }
