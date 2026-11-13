@@ -194,8 +194,16 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     try {
                         ensureLoaded(app, path, historyForInitialization, useGpu = true)
                     } catch (gpuLoadError: Throwable) {
-                        if (isMemoryExhaustion(gpuLoadError)) throw gpuLoadError
-                        ensureLoaded(app, path, historyForInitialization, useGpu = false)
+                        // En teléfonos con RAM limitada, la inicialización GPU puede agotar
+                        // memoria. Liberar referencias y probar CPU antes de declarar fallo.
+                        releaseLoadedModel()
+                        System.gc()
+                        try {
+                            ensureLoaded(app, path, historyForInitialization, useGpu = false)
+                        } catch (cpuLoadError: Throwable) {
+                            cpuLoadError.addSuppressed(gpuLoadError)
+                            throw cpuLoadError
+                        }
                     }
                 }
                 val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
@@ -205,10 +213,16 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 try {
                     checkNotNull(conversation).sendMessage(modelPrompt).toString()
                 } catch (gpuReplyError: Throwable) {
-                    if (loadedBackendIsGpu == true && !isMemoryExhaustion(gpuReplyError)) {
+                    if (loadedBackendIsGpu == true) {
                         releaseLoadedModel()
-                        ensureLoaded(app, path, historyForInitialization, useGpu = false)
-                        checkNotNull(conversation).sendMessage(modelPrompt).toString()
+                        System.gc()
+                        try {
+                            ensureLoaded(app, path, historyForInitialization, useGpu = false)
+                            checkNotNull(conversation).sendMessage(modelPrompt).toString()
+                        } catch (cpuReplyError: Throwable) {
+                            cpuReplyError.addSuppressed(gpuReplyError)
+                            throw cpuReplyError
+                        }
                     } else {
                         throw gpuReplyError
                     }
@@ -258,8 +272,10 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 candidateConversation = null
                 return
             } catch (error: Throwable) {
-                if (isMemoryExhaustion(error)) throw error
+                // No detenerse por OOM en GPU: el backend CPU puede requerir
+                // una asignación distinta y todavía conseguir cargar el modelo.
                 lastError = error
+                System.gc()
             } finally {
                 runCatching { candidateConversation?.close() }
                 if (initialized) runCatching { candidateEngine?.close() }
