@@ -28,7 +28,7 @@ object OnDeviceLlmEngine {
     private const val MODEL_PATH = "model_path"
     private const val MODEL_DIR = "models"
     // SHA-256 publicado para LFM2.5-350M_int4.litertlm por LiteRT Community.
-    private const val EXPECTED_MODEL_SHA256 = "c29a41cdf4148ec9f4b6e57f8e598728a05a189fdc7ca0764b013b78f9dfd52f"
+    private const val EXPECTED_MODEL_SHA256 = "272b0a1ca55f8b39fe636927deffe4049feb93b5eda7c05a5dbbb3141d6d53f8"
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
