@@ -33,10 +33,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.json.JSONArray
+import org.json.JSONObject
 
 private data class AcademyTopic(val name: String, val description: String)
 private data class AcademyLevel(val name: String, val subtitle: String, val topics: List<AcademyTopic>)
 private data class AcademyQuestion(val prompt: String, val options: List<String>, val answer: Int, val explanation: String)
+private data class AcademyResult(val student: String, val assessment: String, val score: Int, val date: String)
+
+private fun loadAcademyHistory(prefs: android.content.SharedPreferences): List<AcademyResult> = runCatching {
+    val raw = prefs.getString("academy_history", null) ?: return emptyList()
+    val json = JSONArray(raw)
+    List(json.length()) { i -> json.getJSONObject(i).let { AcademyResult(it.optString("student"), it.optString("assessment"), it.optInt("score"), it.optString("date")) } }
+}.getOrDefault(emptyList())
 
 private val academyLevels = listOf(
     AcademyLevel("Principiante", "Fundamentos y primeros pasos", listOf(
@@ -120,6 +128,14 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
             android.widget.Toast.makeText(context, if (saved) "Certificado PDF guardado correctamente" else "No se pudo guardar el certificado", android.widget.Toast.LENGTH_LONG).show()
         }
     }
+    var history by remember { mutableStateOf(loadAcademyHistory(prefs)) }
+    fun recordResult(student: String, assessment: String, score: Int) {
+        val entry = AcademyResult(student.ifBlank { "Alumno DJ" }, assessment, score, SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("es", "MX")).format(Date()))
+        history = (listOf(entry) + history).take(30)
+        val json = JSONArray()
+        history.forEach { item -> json.put(JSONObject().put("student", item.student).put("assessment", item.assessment).put("score", item.score).put("date", item.date)) }
+        prefs.edit().putString("academy_history", json.toString()).apply()
+    }
     var scores by remember {
         mutableStateOf(listOf(0, 0, 0).mapIndexed { index, _ -> prefs.getInt("exam_score_$index", -1) })
     }
@@ -164,6 +180,7 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
         updated[index] = score
         scores = updated
         prefs.edit().putInt("exam_score_$index", score).apply()
+        recordResult(studentName, "Examen ${academyLevels[index].name}", score)
     }
 
     Column(modifier.fillMaxSize().padding(16.dp)) {
@@ -182,6 +199,14 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
             modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp),
             color = Accent, trackColor = Panel
         )
+        if (history.isNotEmpty()) {
+            Surface(color = Panel, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(10.dp)) {
+                    Text("Historial de evaluaciones", color = Accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    history.take(3).forEach { item -> Text("${item.student} • ${item.assessment}: ${item.score}% • ${item.date}", color = Color.White, fontSize = 10.sp) }
+                }
+            }
+        }
         OutlinedTextField(
             value = search, onValueChange = { search = it }, modifier = Modifier.fillMaxWidth(),
             singleLine = true, placeholder = { Text("Buscar clase o técnica…") }
@@ -393,6 +418,7 @@ Responde paso a paso y propone una práctica verificable. No inventes botones, c
                     selectedTopic?.let { topic ->
                         practicalScores = practicalScores + (topic.name to score)
                         prefs.edit().putInt("practical_score_${topic.name}", score).apply()
+                        recordResult(studentName, "Práctica: ${topic.name}", score)
                     }
                     practicalResult = "Calificación práctica: $score/100. " + when {
                         score == 100 -> "Excelente: completaste todos los pasos de la mezcla."
