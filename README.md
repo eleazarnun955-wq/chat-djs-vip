@@ -6,9 +6,9 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - Integra LiteRT-LM para ejecutar un modelo generativo directamente en el teléfono.
 - No usa Gemini, OpenAI, claves API, servidores de inferencia ni permiso INTERNET.
 - El modelo se obtiene una sola vez desde el navegador y se importa desde Archivos; queda guardado en el almacenamiento privado de la app y funciona sin conexión.
-- Modelo alternativo: Gemma 3 270M IT en formato LiteRT-LM, archivo `gemma3-270m-it-q8.litertlm` (aprox. 304 MB).
-- El modelo está publicado en la colección Android de LiteRT Community. La aceleración GPU figura como trabajo en curso para esta variante; la app prueba GPU y recurre a CPU.
-- Gemma usa sus propios términos de uso; es necesario aceptar las condiciones del repositorio antes de descargarlo. Su tamaño reducido la hace una opción más razonable para probar en móviles con RAM limitada, aunque la calidad generativa es modesta y el rendimiento debe verificarse en el teléfono real.
+- Modelo recomendado para esta compilación: LFM2.5 350M INT4, archivo `LFM2.5-350M_int4.litertlm` (aprox. 248 MB), publicado públicamente por LiteRT Community; no requiere aceptar condiciones de acceso de Gemma ni iniciar sesión para autorizar el modelo.
+- El paquete INT4 declara runtime mínimo LiteRT-LM 0.19.0; esta app integra LiteRT-LM 0.19.1. La ficha del modelo documenta pruebas en Android, pero el Moto G24 del usuario aún debe validarse en ejecución. La app intenta GPU y contempla CPU como alternativa.
+- Licencia: LFM Open License v1.0. Revisar sus condiciones antes de distribuir comercialmente. El modelo es ligero y admite español, pero su ficha recomienda tareas generales, extracción y uso de herramientas; no ofrece la misma profundidad de conocimiento o programación que un modelo grande.
 - El chat conserva contexto reciente y usa instrucciones de asistente general en español, además de memoria local.
 - El modelo inicial es solo texto; análisis directo de imágenes y audio con IA local queda pendiente de un modelo multimodal compatible.
 - No consulta noticias, clima, precios ni resultados actuales porque el chat no tiene conexión de red.
@@ -27,9 +27,9 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - Las funciones de audio trabajan con archivos del dispositivo; la generación de música por IA no forma parte de esta versión.
 
 ## Construcción
-- Versión: 3.6.9.
+- Versión: 3.7.0.
 - applicationId: com.djsebas.chatdjsvip.v320 (se conserva para actualizar la instalación existente).
-- versionCode: 41.
+- versionCode: 42.
 - El workflow Android APK ejecuta pruebas unitarias, Android Lint y compila app-debug.apk.
 - La aplicación no declara permiso INTERNET; el modelo se obtiene fuera de la app y luego se importa localmente.
 - El Estudio de Aplicaciones realiza análisis estático local. La compilación y publicación remota de proyectos importados no están implementadas.
