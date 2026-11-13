@@ -152,7 +152,7 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
         Text("ESCUELA DJ • ACADEMIA", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Text("Aprende, practica, presenta exámenes y obtén certificados internos.", color = Muted, fontSize = 12.sp)
         OutlinedButton(onClick = onOpenLibrary, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.LibraryMusic, contentDescription = null)
+            Icon(Icons.Default.School, contentDescription = null)
             Text("  Abrir biblioteca musical para practicar")
         }
         Spacer(Modifier.height(12.dp))
