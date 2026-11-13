@@ -519,10 +519,46 @@ OBJETIVO: reconocer decks, canales, salidas y monitoreo. Identifica Play/Pause, 
 6. PRÁCTICA: reproduce una pista, prepara otra con CUE y realiza un cambio suave con niveles bajos.
 RETO: describe la ruta Deck → canal → Master → bocinas. Dime marca y modelo para adaptar el diagrama.
 """
-    "Serato DJ" -> "RUTA DE APRENDIZAJE\n1. Instala la versión compatible y conecta tu controlador apagado.\n2. Abre Serato y revisa Setup: audio, dispositivo y firmware.\n3. Importa música desde Files y analiza BPM y tonalidad.\n4. Organiza crates y revisa que cada pista tenga beatgrid correcto.\n5. Marca Hot Cues y prueba loops de 4 u 8 compases.\n6. Preescucha con CUE, iguala tempo y mezcla usando ganancia y EQ.\nDime tu versión y modelo de controlador para adaptar los nombres de botones."
-    "rekordbox" -> "RUTA DE APRENDIZAJE\n1. Elige el modo Export para preparar USB o Performance para mezclar.\n2. Importa y analiza las pistas.\n3. Corrige beatgrids si el análisis detectó mal los golpes.\n4. Configura Memory Cues y Hot Cues.\n5. Exporta la colección a una memoria USB compatible y expúlsala de forma segura.\n6. Prueba el USB en tu CDJ antes de un evento. Las opciones varían según versión y equipo."
-    "VirtualDJ" -> "RUTA DE APRENDIZAJE\n1. Configura el controlador en Settings > Controllers.\n2. Selecciona la tarjeta de sonido y asigna salidas Master y Headphones.\n3. Carga pistas en los decks y analiza BPM/Key.\n4. Usa auriculares para preescuchar el deck entrante.\n5. Practica loops, hot cues y transiciones con EQ.\n6. Guarda cambios de mapeo solo después de probarlos."
-    "Traktor" -> "RUTA DE APRENDIZAJE\n1. Configura Audio Device y latencia en Preferences > Audio Setup.\n2. Asigna salidas Master y Monitor.\n3. Importa música a la Collection y analiza beatgrids.\n4. Ajusta Sync solo después de entender fase y tempo.\n5. Practica Hotcues, loops y FX con niveles moderados.\n6. Comprueba el mapeo MIDI y guarda una copia antes de modificarlo."
+    "Serato DJ" -> """SERATO DJ • CONFIGURACIÓN, PREPARACIÓN Y MEZCLA
+1. COMPATIBILIDAD: confirma que tu modelo de controlador y versión de Serato estén soportados. Instala software y driver oficial si corresponde.
+2. AUDIO: abre Setup y revisa que el hardware aparezca. Comprueba Master, Headphones y asignación de salidas; prueba primero a volumen bajo.
+3. BIBLIOTECA: importa música desde una carpeta estable del dispositivo. No muevas los archivos después de analizarlos; crea crates por género, energía y evento.
+4. ANÁLISIS: analiza BPM y tonalidad. Reproduce el inicio y una parte fuerte para comprobar BPM y beatgrid; corrige manualmente si los marcadores no coinciden con los golpes.
+5. PREPARACIÓN: coloca Hot Cues en intro, entrada vocal, drop y outro. Usa loops para extender una sección y verifica que el loop cierre a tiempo.
+6. MEZCLA: activa CUE en el deck entrante, iguala tempo, alinea golpes, espera una frase compatible y realiza el cambio de graves con EQ y faders.
+PRÁCTICA: prepara dos canciones de tempo parecido. Haz una transición de 32 compases, grábala y evalúa sincronía, fraseo, niveles y claridad.
+DIAGNÓSTICO: si no hay preescucha, revisa Phones, CUE y Output Routing; si hay cortes, revisa driver, cable y carga del equipo.
+Dime versión de Serato y modelo exacto para adaptar cada paso a tu configuración."""
+    "rekordbox" -> """REKORDBOX • COLECCIÓN, ANÁLISIS Y USB
+1. MODO DE TRABAJO: distingue Export para preparar medios compatibles y Performance para mezclar con el equipo/software admitido por tu licencia y versión.
+2. COLECCIÓN: importa pistas desde carpetas organizadas. Mantén una ubicación estable y haz respaldo de los archivos originales.
+3. ANÁLISIS: analiza BPM, tonalidad y forma de onda. Revisa beatgrid al inicio y en cambios de tempo; ajusta downbeat y grid cuando sea necesario.
+4. CUES: coloca Memory Cues para marcar secciones y Hot Cues para saltos inmediatos. Nombra los puntos de forma consistente.
+5. PLAYLISTS: crea listas por evento, género y energía. Revisa que los archivos no estén perdidos y que cada pista se reproduzca correctamente.
+6. EXPORTACIÓN: confirma el formato y compatibilidad de la memoria con el reproductor destino. Exporta desde la función oficial, espera a que finalice y expulsa de forma segura.
+PRÁCTICA: prepara una playlist de 10 pistas, revisa beatgrid y cues de tres canciones y exporta a una memoria de prueba.
+VERIFICACIÓN: prueba esa memoria en el CDJ/XDJ exacto del evento; no supongas que todos los modelos aceptan los mismos formatos o funciones.
+Dime versión de rekordbox y modelo de reproductor para personalizar el procedimiento."""
+    "VirtualDJ" -> """VIRTUALDJ • CONTROLADOR, AUDIO Y PERFORMANCE
+1. HARDWARE: conecta el controlador compatible y comprueba en Settings > Controllers que el dispositivo sea reconocido. Evita modificar el mapeo antes de respaldarlo.
+2. AUDIO: en Settings > Audio selecciona una configuración compatible con tu interfaz. Asigna Master y Headphones según las salidas físicas reales.
+3. BIBLIOTECA: añade carpetas musicales, analiza BPM/Key y organiza listas por género, energía y ocasión. Verifica que las rutas de archivos sigan disponibles.
+4. DECKS: carga dos pistas, revisa BPM y beatgrid, y utiliza audífonos para preparar la pista entrante.
+5. HERRAMIENTAS: practica Hot Cues, loops y efectos por separado. Si usas stems o sampler, comprueba consumo de CPU y evita saturar la salida.
+6. TRANSICIÓN: alinea golpes y frases; cambia EQ y faders gradualmente. Graba una práctica para escuchar errores.
+PRÁCTICA: prepara dos pistas, crea tres puntos Cue útiles y realiza una transición de 16 o 32 compases.
+DIAGNÓSTICO: si no hay audífonos, revisa la configuración de salidas y el modo de audio; si el controlador no aparece, verifica cable, permisos y compatibilidad.
+Dime versión de VirtualDJ y modelo de controlador para ajustar esta ruta."""
+    "Traktor" -> """TRAKTOR • AUDIO, COLLECTION Y CONTROL
+1. INTERFAZ: en Preferences > Audio Setup selecciona el dispositivo correcto. Ajusta Sample Rate y latencia de forma compatible con tu equipo.
+2. ROUTING: en Output Routing asigna Master y Monitor/Headphones a los canales físicos correctos. Prueba cada salida a volumen bajo.
+3. COLECCIÓN: importa pistas a Collection, analiza BPM y revisa beatgrids. Corrige el grid cuando el tempo o el downbeat estén mal detectados.
+4. DECKS: identifica el tipo de deck y practica carga, reproducción, Cue y pitch. Comprende la diferencia entre tempo y fase antes de depender de Sync.
+5. HOTCUES, LOOPS Y FX: prepara puntos musicales, prueba loops y aplica un efecto a la vez. Controla el nivel para evitar saturación.
+6. MIDI: confirma el mapeo del controlador y exporta una copia antes de modificar asignaciones.
+PRÁCTICA: prepara dos pistas, corrige un beatgrid, crea puntos de entrada y salida y realiza una transición sin Sync; repítela usando Sync y compara.
+DIAGNÓSTICO: si hay cortes, aumenta gradualmente el búfer; si falla Monitor, revisa Output Routing y la interfaz seleccionada.
+Dime versión de Traktor, sistema operativo e interfaz/controlador para adaptar los pasos."""
     "djay" -> "RUTA DE APRENDIZAJE\n1. Conecta un controlador compatible y concede permisos de audio.\n2. Selecciona la salida principal y la preescucha si tu dispositivo lo permite.\n3. Carga pistas, revisa BPM y forma de onda.\n4. Practica cue points, loops y ecualización.\n5. Explora Neural Mix si tu versión y dispositivo lo admiten.\n6. Verifica compatibilidad exacta del controlador antes de comprarlo."
     "Tornamesas y vinilos" -> "CONFIGURACIÓN SEGURA\n1. Coloca la tornamesa en una superficie firme y nivelada.\n2. Instala cápsula y aguja siguiendo el fabricante.\n3. Ajusta contrapeso y fuerza de apoyo al rango recomendado por la cápsula; no adivines el valor.\n4. Ajusta antiskating según el manual.\n5. Conecta PHONO a entrada PHONO con tierra; usa LINE solo si el preamplificador está activado y la mezcladora recibe LINE.\n6. Limpia el vinilo y practica cueing sin forzar la aguja."
     "Mezcla armónica y tonalidad" -> "MEZCLA ARMÓNICA\n1. Analiza la tonalidad de ambas canciones, pero confirma de oído: el análisis puede equivocarse.\n2. Aprende la rueda Camelot: combina primero la misma tonalidad o tonalidades vecinas compatibles.\n3. Prueba la mezcla en una sección con pocos elementos melódicos.\n4. Evita superponer dos melodías o voces que choquen.\n5. Si cambias de tonalidad, hazlo con una transición breve o una sección rítmica.\n6. Prioriza fraseo, energía y gusto musical por encima de una regla matemática."
