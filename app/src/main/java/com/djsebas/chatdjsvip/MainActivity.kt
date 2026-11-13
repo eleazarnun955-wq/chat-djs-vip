@@ -133,9 +133,12 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
     val context = LocalContext.current
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var modelInstalled by remember { mutableStateOf(OnDeviceLlmEngine.hasInstalledModel(context)) }
+    var importingModel by remember { mutableStateOf(false) }
     val modelPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
+            importingModel = true
             OnDeviceLlmEngine.importModel(context, uri) { success, message ->
+                importingModel = false
                 modelInstalled = success || OnDeviceLlmEngine.hasInstalledModel(context)
                 android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
             }
@@ -211,9 +214,21 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                     )
                     Text("Qwen3 0.6B • 328 MB • respuestas locales", color = Muted, fontSize = 10.sp)
                 }
-                TextButton(onClick = { modelPicker.launch(arrayOf("*/*")) }) {
-                    Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Accent)
-                    Text(" Importar modelo")
+                TextButton(
+                    onClick = { modelPicker.launch(arrayOf("*/*")) },
+                    enabled = !importingModel
+                ) {
+                    if (importingModel) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Accent,
+                            strokeWidth = 2.dp
+                        )
+                        Text(" Importando…")
+                    } else {
+                        Icon(Icons.Default.FolderOpen, contentDescription = null, tint = Accent)
+                        Text(" Importar modelo")
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
