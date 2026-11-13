@@ -101,9 +101,11 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     "El archivo parece incompleto o no es un modelo de lenguaje compatible."
                 }
 
-                // Validar el archivo temporal antes de tocar el modelo que ya funciona.
-                validateModelFile(app, staged)
+                // Liberar primero el modelo en memoria para no duplicar el consumo
+                // de RAM durante la comprobación del archivo temporal.
                 releaseLoadedModel()
+                // Validar antes de reemplazar el archivo que ya funciona.
+                validateModelFile(app, staged)
 
                 if (target.exists()) {
                     check(target.renameTo(backup)) {
