@@ -251,7 +251,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 candidateEngine = createdEngine
                 createdEngine.initialize()
                 initialized = true
-                candidateConversation = createdEngine.createConversation()
+                candidateConversation = createdEngine.createConversation(\n                    ConversationConfig(systemInstruction = Contents.of(SYSTEM_PROMPT))\n                )
                 candidateConversation.close()
                 candidateConversation = null
                 return
