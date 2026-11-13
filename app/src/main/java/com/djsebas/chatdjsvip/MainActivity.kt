@@ -590,6 +590,11 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
     var player by remember { mutableStateOf<MediaPlayer?>(null) }
     var searchText by remember { mutableStateOf("") }
     var showFavoritesOnly by remember { mutableStateOf(false) }
+    var showPracticeOnly by remember { mutableStateOf(false) }
+    var practiceTracks by remember {
+        val saved = prefs.getString("practice_audio_tracks", null)
+        mutableStateOf(if (saved.isNullOrBlank()) emptySet() else runCatching { val json = JSONArray(saved); List(json.length()) { json.getString(it) }.toSet() }.getOrDefault(emptySet()))
+    }
     var sortAscending by remember { mutableStateOf(prefs.getBoolean("audio_sort_ascending", true)) }
     var favorites by remember {
         val saved = prefs.getString("favorite_audio_tracks", null)
@@ -651,7 +656,8 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         val metadata = readLibraryTrackMetadata(context, uri)
         val query = searchText.trim()
         (title.contains(query, ignoreCase = true) || metadata.artist?.contains(query, ignoreCase = true) == true || metadata.format?.contains(query, ignoreCase = true) == true) &&
-            (!showFavoritesOnly || uriString in favorites)
+            (!showFavoritesOnly || uriString in favorites) &&
+            (!showPracticeOnly || uriString in practiceTracks)
     }
 
     val allSortedTracks = tracks.sortedBy { uriString ->
@@ -681,6 +687,13 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         val json = JSONArray()
         favorites.forEach { json.put(it) }
         prefs.edit().putString("favorite_audio_tracks", json.toString()).apply()
+    }
+
+    fun togglePracticeTrack(uriString: String) {
+        practiceTracks = if (uriString in practiceTracks) practiceTracks - uriString else practiceTracks + uriString
+        val json = JSONArray()
+        practiceTracks.forEach { json.put(it) }
+        prefs.edit().putString("practice_audio_tracks", json.toString()).apply()
     }
 
     fun saveTracks(updated: List<String>) {
@@ -827,6 +840,12 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     label = { Text("Favoritas (${favorites.count { it in tracks }})") },
                     leadingIcon = { Icon(Icons.Default.Favorite, null) }
                 )
+                FilterChip(
+                    selected = showPracticeOnly,
+                    onClick = { showPracticeOnly = !showPracticeOnly; showFavoritesOnly = false },
+                    label = { Text("Prácticas (${practiceTracks.count { it in tracks }})") },
+                    leadingIcon = { Icon(Icons.Default.School, null) }
+                )
                 TextButton(onClick = { sortAscending = !sortAscending; prefs.edit().putBoolean("audio_sort_ascending", sortAscending).apply() }) {
                     Icon(Icons.Default.SortByAlpha, contentDescription = null, tint = Accent)
                     Text(if (sortAscending) "A–Z" else "Z–A")
@@ -939,6 +958,13 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                                     if (uriString in favorites) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                                     contentDescription = if (uriString in favorites) "Quitar de favoritas" else "Agregar a favoritas",
                                     tint = if (uriString in favorites) Color(0xFFFF6B81) else Muted
+                                )
+                            }
+                            IconButton(onClick = { togglePracticeTrack(uriString) }) {
+                                Icon(
+                                    if (uriString in practiceTracks) Icons.Default.CheckCircle else Icons.Default.Add,
+                                    contentDescription = if (uriString in practiceTracks) "Quitar de prácticas" else "Agregar a prácticas DJ",
+                                    tint = if (uriString in practiceTracks) Accent else Muted
                                 )
                             }
                             IconButton(onClick = {
