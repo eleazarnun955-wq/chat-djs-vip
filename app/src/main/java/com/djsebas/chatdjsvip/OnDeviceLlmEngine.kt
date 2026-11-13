@@ -52,11 +52,20 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
 
     fun hasInstalledModel(context: Context): Boolean {
         val app = context.applicationContext
-        val savedPath = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(MODEL_PATH, null)
-        val modelFile = recoverModelFile(app)
-        val path = savedPath?.takeIf { File(it).isFile } ?: modelFile.absolutePath
-        return File(path).isFile && File(path).length() > 50L * 1024L * 1024L
+        val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val savedPath = prefs.getString(MODEL_PATH, null)
+        val savedFile = savedPath?.let(::File)?.takeIf {
+            it.isFile && it.canRead() && it.length() > 50L * 1024L * 1024L
+        }
+        val recoveredFile = recoverModelFile(app)
+        val modelFile = savedFile ?: recoveredFile.takeIf {
+            it.isFile && it.canRead() && it.length() > 50L * 1024L * 1024L
+        }
+        if (modelFile != null && savedPath != modelFile.absolutePath) {
+            // Repara la referencia persistente si Android cambió/perdió la ruta guardada.
+            prefs.edit().putString(MODEL_PATH, modelFile.absolutePath).commit()
+        }
+        return modelFile != null
     }
 
     fun importModel(context: Context, uri: Uri, onResult: (Boolean, String) -> Unit) {
@@ -211,9 +220,35 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     removeAll { it.contains("Consultando...") }
                 }
                 if (conversation == null || loadedPath != path) {
-                    // Reutilizar el backend que superó la validación de importación.
-                    val backend = prefs.getString(MODEL_BACKEND, "CPU") ?: "CPU"
-                    ensureLoaded(app, path, historyForInitialization, useGpu = backend == "GPU")
+                    // Al volver a abrir la app, el proceso nativo se crea de nuevo:
+                    // cargar desde el archivo privado y probar el backend guardado.
+                    val preferredBackend = prefs.getString(MODEL_BACKEND, "CPU") ?: "CPU"
+                    val preferredGpu = preferredBackend == "GPU"
+                    val preferredResult = runCatching {
+                        ensureLoaded(app, path, historyForInitialization, useGpu = preferredGpu)
+                    }
+                    if (preferredResult.isFailure) {
+                        // Un backend puede dejar de estar disponible tras cerrar la app
+                        // (memoria, controladores o inicialización del dispositivo). Probar el otro.
+                        val fallbackBackend = if (preferredGpu) "CPU" else "GPU"
+                        val fallbackResult = runCatching {
+                            ensureLoaded(app, path, historyForInitialization, useGpu = !preferredGpu)
+                        }
+                        if (fallbackResult.isSuccess) {
+                            check(prefs.edit().putString(MODEL_BACKEND, fallbackBackend).commit()) {
+                                "El cerebro cargó con $fallbackBackend, pero no se pudo guardar el backend estable."
+                            }
+                        } else {
+                            val firstError = preferredResult.exceptionOrNull()
+                            val fallbackError = fallbackResult.exceptionOrNull()
+                            throw IllegalStateException(
+                                "No se pudo reactivar el cerebro guardado. " +
+                                    "$preferredBackend: ${firstError?.let(::rootCauseMessage)}. " +
+                                    "$fallbackBackend: ${fallbackError?.let(::rootCauseMessage)}",
+                                fallbackError
+                            )
+                        }
+                    }
                 }
                 val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
                     .getString("facts", "").orEmpty().lines().filter { it.isNotBlank() }.takeLast(10).joinToString("; ")
