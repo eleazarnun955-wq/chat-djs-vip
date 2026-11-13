@@ -98,7 +98,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 require(staged.isFile && staged.length() > 50L * 1024L * 1024L) {
                     "El archivo parece incompleto o no es un modelo de lenguaje compatible."
                 }
-                val actualSha256 = sha256.digest().joinToString("") { "%02x".format(it) }
+                val actualSha256 = sha256.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
                 require(actualSha256.equals(EXPECTED_MODEL_SHA256, ignoreCase = true)) {
                     "El archivo no coincide con el modelo oficial LFM2.5-350M INT4. Descárgalo de nuevo desde «Obtener modelo». SHA-256 detectado: $actualSha256"
                 }
