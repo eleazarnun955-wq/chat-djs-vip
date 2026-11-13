@@ -53,25 +53,25 @@ private val academyLevels = listOf(
 
 private val academyExams = listOf(
     listOf(
-        AcademyQuestion("¿Para qué sirve la ganancia (trim) de un canal?", listOf("Ajustar el nivel de entrada", "Cambiar la tonalidad", "Aumentar el BPM automáticamente"), 0, "La ganancia ajusta el nivel de entrada del canal. Evita que los medidores lleguen a rojo."),
-        AcademyQuestion("¿Qué escuchas al activar CUE en un canal?", listOf("La señal de preescucha en audífonos", "El audio de todas las bocinas", "Una grabación automática"), 0, "CUE permite preparar la siguiente canción sin enviarla al público."),
-        AcademyQuestion("¿Qué dato indica aproximadamente la velocidad de una canción?", listOf("BPM", "EQ", "USB"), 0, "BPM significa beats por minuto y describe el tempo."),
-        AcademyQuestion("¿Qué debes revisar antes de conectar una controladora?", listOf("Salidas, entradas y compatibilidad", "Solo el color del cable", "Subir todo el volumen al máximo"), 0, "Identifica entradas, salidas y compatibilidad; conecta con volúmenes bajos."),
-        AcademyQuestion("¿Qué es un Hot Cue?", listOf("Un punto de acceso rápido dentro de la pista", "Un tipo de bocina", "Un cable de audio"), 0, "Los Hot Cues permiten saltar rápidamente a puntos preparados de una canción.")
+        AcademyQuestion("¿Para qué sirve la ganancia (trim) de un canal?", listOf("Cambiar la tonalidad", "Ajustar el nivel de entrada", "Aumentar el BPM automáticamente"), 1, "La ganancia ajusta el nivel de entrada del canal. Evita que los medidores lleguen a rojo."),
+        AcademyQuestion("¿Qué escuchas al activar CUE en un canal?", listOf("El audio de todas las bocinas", "Una grabación automática", "La señal de preescucha en audífonos"), 2, "CUE permite preparar la siguiente canción sin enviarla al público."),
+        AcademyQuestion("¿Qué dato indica aproximadamente la velocidad de una canción?", listOf("EQ", "BPM", "USB"), 1, "BPM significa beats por minuto y describe el tempo."),
+        AcademyQuestion("¿Qué debes revisar antes de conectar una controladora?", listOf("Solo el color del cable", "Subir todo el volumen al máximo", "Salidas, entradas y compatibilidad"), 2, "Identifica entradas, salidas y compatibilidad; conecta con volúmenes bajos."),
+        AcademyQuestion("¿Qué es un Hot Cue?", listOf("Un cable de audio", "Un punto de acceso rápido dentro de la pista", "Un tipo de bocina"), 1, "Los Hot Cues permiten saltar rápidamente a puntos preparados de una canción.")
     ),
     listOf(
-        AcademyQuestion("¿Qué debes hacer si el beatgrid está desfasado?", listOf("Revisarlo y corregirlo manualmente", "Subir el volumen", "Cambiar el nombre del archivo"), 0, "El análisis automático puede fallar; revisa el grid escuchando y observando los golpes."),
-        AcademyQuestion("¿Para qué sirve un loop?", listOf("Repetir una sección musical", "Eliminar el archivo", "Cambiar la salida Master"), 0, "Un loop repite una sección y puede ayudar a extender una frase."),
-        AcademyQuestion("¿Qué es la preescucha?", listOf("Escuchar la pista entrante antes de enviarla al Master", "Grabar el evento", "Subir los graves"), 0, "La preescucha ayuda a preparar tempo, fraseo y entrada."),
-        AcademyQuestion("¿Cómo conviene usar efectos durante una mezcla?", listOf("Con moderación y controlando niveles", "Todos al máximo", "Sin escuchar el resultado"), 0, "Un efecto bien sincronizado y moderado aporta creatividad sin ensuciar la mezcla."),
-        AcademyQuestion("¿Qué debes confirmar antes de exportar un USB para CDJ?", listOf("Compatibilidad y prueba en el equipo destino", "Que esté vacío", "Que tenga el mayor volumen posible"), 0, "Comprueba el formato y compatibilidad del equipo y prueba el USB antes del evento.")
+        AcademyQuestion("¿Qué debes hacer si el beatgrid está desfasado?", listOf("Subir el volumen", "Revisarlo y corregirlo manualmente", "Cambiar el nombre del archivo"), 1, "El análisis automático puede fallar; revisa el grid escuchando y observando los golpes."),
+        AcademyQuestion("¿Para qué sirve un loop?", listOf("Eliminar el archivo", "Cambiar la salida Master", "Repetir una sección musical"), 2, "Un loop repite una sección y puede ayudar a extender una frase."),
+        AcademyQuestion("¿Qué es la preescucha?", listOf("Grabar el evento", "Escuchar la pista entrante antes de enviarla al Master", "Subir los graves"), 1, "La preescucha ayuda a preparar tempo, fraseo y entrada."),
+        AcademyQuestion("¿Cómo conviene usar efectos durante una mezcla?", listOf("Todos al máximo", "Sin escuchar el resultado", "Con moderación y controlando niveles"), 2, "Un efecto bien sincronizado y moderado aporta creatividad sin ensuciar la mezcla."),
+        AcademyQuestion("¿Qué debes confirmar antes de exportar un USB para CDJ?", listOf("Que tenga el mayor volumen posible", "Compatibilidad y prueba en el equipo destino", "Que esté vacío"), 1, "Comprueba el formato y compatibilidad del equipo y prueba el USB antes del evento.")
     ),
     listOf(
-        AcademyQuestion("¿Qué es el fraseo musical?", listOf("La organización de la música en frases y compases", "El volumen de audífonos", "El nombre de una controladora"), 0, "Reconocer frases ayuda a realizar entradas y salidas musicales naturales."),
-        AcademyQuestion("¿Qué debes hacer con la fuerza de apoyo de una aguja?", listOf("Seguir el rango indicado por el fabricante", "Adivinar el valor", "Ponerla siempre al máximo"), 0, "La fuerza depende de la cápsula; consulta sus especificaciones para evitar daños."),
-        AcademyQuestion("¿Qué representa la rueda Camelot?", listOf("Una forma de relacionar tonalidades compatibles", "Un medidor de volumen", "Una lista de reproducción"), 0, "Camelot facilita explorar tonalidades compatibles, aunque el oído y la música mandan."),
-        AcademyQuestion("¿Qué es lo más importante al preparar un evento?", listOf("Plan musical, revisión técnica y respaldo", "Usar todos los efectos", "Depender de internet"), 0, "Un DJ profesional prepara música, equipo, conexiones y alternativas ante fallas."),
-        AcademyQuestion("¿Cómo evitas saturación en el Master?", listOf("Controlando ganancias y niveles", "Llevando todos los medidores a rojo", "Subiendo todos los faders al máximo"), 0, "Mantén margen de nivel y evita clipping en cada etapa de la señal.")
+        AcademyQuestion("¿Qué es el fraseo musical?", listOf("El volumen de audífonos", "El nombre de una controladora", "La organización de la música en frases y compases"), 2, "Reconocer frases ayuda a realizar entradas y salidas musicales naturales."),
+        AcademyQuestion("¿Qué debes hacer con la fuerza de apoyo de una aguja?", listOf("Adivinar el valor", "Seguir el rango indicado por el fabricante", "Ponerla siempre al máximo"), 1, "La fuerza depende de la cápsula; consulta sus especificaciones para evitar daños."),
+        AcademyQuestion("¿Qué representa la rueda Camelot?", listOf("Una lista de reproducción", "Una forma de relacionar tonalidades compatibles", "Un medidor de volumen"), 1, "Camelot facilita explorar tonalidades compatibles, aunque el oído y la música mandan."),
+        AcademyQuestion("¿Qué es lo más importante al preparar un evento?", listOf("Depender de internet", "Usar todos los efectos", "Plan musical, revisión técnica y respaldo"), 2, "Un DJ profesional prepara música, equipo, conexiones y alternativas ante fallas."),
+        AcademyQuestion("¿Cómo evitas saturación en el Master?", listOf("Llevando todos los medidores a rojo", "Controlando ganancias y niveles", "Subiendo todos los faders al máximo"), 1, "Mantén margen de nivel y evita clipping en cada etapa de la señal.")
     )
 )
 
