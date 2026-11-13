@@ -648,7 +648,9 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 if (cursor.moveToFirst()) cursor.getString(0) else null
             }
         }.getOrNull() ?: uri.lastPathSegment?.substringAfterLast('/') ?: "Audio"
-        title.contains(searchText.trim(), ignoreCase = true) &&
+        val metadata = readLibraryTrackMetadata(context, uri)
+        val query = searchText.trim()
+        (title.contains(query, ignoreCase = true) || metadata.artist?.contains(query, ignoreCase = true) == true || metadata.format?.contains(query, ignoreCase = true) == true) &&
             (!showFavoritesOnly || uriString in favorites)
     }
 
@@ -857,7 +859,7 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                 onValueChange = { searchText = it },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Buscar canción por nombre…") },
+                placeholder = { Text("Buscar por canción, artista o formato…") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Accent) },
                 trailingIcon = {
                     if (searchText.isNotEmpty()) IconButton(onClick = { searchText = "" }) {
