@@ -65,7 +65,10 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             val modelDirectory = File(app.filesDir, MODEL_DIR)
             val target = File(modelDirectory, "assistant.litertlm")
             val backup = File(modelDirectory, "assistant.litertlm.backup")
-            val staged = File(modelDirectory, "assistant.litertlm.part")
+            // LiteRT-LM Android identifica el formato por la extensión final: debe terminar en .litertlm.
+            // El nombre anterior assistant.litertlm.part provocaba Unsupported or unknown file format.
+            val staged = File(modelDirectory, "assistant.part.litertlm")
+            val legacyStaged = File(modelDirectory, "assistant.litertlm.part")
             var previousModelMoved = false
             var newModelPlaced = false
             var settingsSaved = false
@@ -80,6 +83,7 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                 }
                 // Recupera primero una copia anterior si una ejecución previa se interrumpió.
                 recoverModelFile(app)
+                if (legacyStaged.exists()) legacyStaged.delete()
                 if (staged.exists()) {
                     check(staged.delete()) { "No se pudo limpiar una importación incompleta anterior." }
                 }
