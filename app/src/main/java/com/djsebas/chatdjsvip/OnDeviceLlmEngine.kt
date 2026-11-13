@@ -66,11 +66,15 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             var settingsSaved = false
 
             val result = runCatching {
-                val displayName = app.contentResolver.query(
+                val queriedName = app.contentResolver.query(
                     uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
                 )?.use { cursor ->
                     if (cursor.moveToFirst()) cursor.getString(0) else null
-                }.orEmpty()
+                }
+                // Algunos proveedores de Archivos no exponen DISPLAY_NAME.
+                // En ese caso usamos el último segmento del URI como respaldo.
+                val displayName = queriedName?.takeIf { it.isNotBlank() }
+                    ?: uri.lastPathSegment.orEmpty().substringAfterLast('/')
                 require(displayName.endsWith(".litertlm", ignoreCase = true)) {
                     "Selecciona el archivo de modelo .litertlm. No se aceptan ZIP, APK ni archivos renombrados."
                 }
@@ -249,42 +253,30 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
     }
 
     private fun validateModelFile(context: Context, modelFile: File) {
-        var lastError: Throwable? = null
-        for (useGpu in listOf(true, false)) {
-            var candidateEngine: Engine? = null
-            var initialized = false
-            var candidateConversation: Conversation? = null
-            try {
-                val createdEngine = Engine(
-                    EngineConfig(
-                        modelPath = modelFile.absolutePath,
-                        backend = if (useGpu) Backend.GPU() else Backend.CPU(),
-                        cacheDir = context.cacheDir.path
-                    )
-                )
-                candidateEngine = createdEngine
-                createdEngine.initialize()
-                initialized = true
-                candidateConversation = createdEngine.createConversation(
-                    ConversationConfig(systemInstruction = Contents.of(SYSTEM_PROMPT))
-                )
-                candidateConversation.close()
-                candidateConversation = null
-                return
-            } catch (error: Throwable) {
-                // No detenerse por OOM en GPU: el backend CPU puede requerir
-                // una asignación distinta y todavía conseguir cargar el modelo.
-                lastError = error
-                System.gc()
-            } finally {
-                runCatching { candidateConversation?.close() }
-                if (initialized) runCatching { candidateEngine?.close() }
-            }
-        }
-        throw IllegalArgumentException(
-            "LiteRT-LM no pudo inicializar este archivo ni crear una conversación.",
-            lastError
+        // La importación comprueba el motor con CPU y NO crea una conversación.
+        // Algunos templates LiteRT-LM fallan al preparar el preámbulo si se crea
+        // una conversación vacía; eso no significa que el archivo esté dañado.
+        // La selección GPU/CPU para responder se hace después, en ensureLoaded().
+        val candidateEngine = Engine(
+            EngineConfig(
+                modelPath = modelFile.absolutePath,
+                backend = Backend.CPU(),
+                cacheDir = context.cacheDir.path
+            )
         )
+        var initialized = false
+        try {
+            candidateEngine.initialize()
+            initialized = true
+        } catch (error: Throwable) {
+            throw IllegalArgumentException(
+                "LiteRT-LM 0.19.1 no pudo inicializar el modelo en CPU: ${error.message ?: error.javaClass.simpleName}",
+                error
+            )
+        } finally {
+            // Engine.close() solo se invoca si initialize() terminó correctamente.
+            if (initialized) runCatching { candidateEngine.close() }
+        }
     }
 
     private fun ensureLoaded(context: Context, path: String, history: List<String>, useGpu: Boolean) {
