@@ -255,7 +255,7 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
                                             certificateLauncher.launch("Certificado-Escuela-DJ-${level.name}.pdf")
                                         }) { Text("Guardar PDF") }
                                         TextButton(onClick = {
-                                            val certificate = "CERTIFICADO INTERNO DE FINALIZACIÓN\\nAlumno: ${studentName.ifBlank { "Alumno DJ" }}\\nEscuela DJ • CHAT DJ'S VIP\\nNivel: ${level.name}\\nCalificación: ${scores[index]}%\\nEmitido por la academia integrada en CHAT DJ'S VIP. No es una acreditación oficial."
+                                            val certificate = "CERTIFICADO INTERNO DE FINALIZACIÓN\nAlumno: ${studentName.ifBlank { "Alumno DJ" }}\nEscuela DJ • CHAT DJ'S VIP\nNivel: ${level.name}\nCalificación: ${scores[index]}%\nEmitido por la academia integrada en CHAT DJ'S VIP. No es una acreditación oficial."
                                             val send = Intent(Intent.ACTION_SEND).apply {
                                                 type = "text/plain"
                                                 putExtra(Intent.EXTRA_SUBJECT, "Certificado Escuela DJ")
