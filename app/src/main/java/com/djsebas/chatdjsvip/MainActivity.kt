@@ -107,7 +107,7 @@ fun ChatDjsVipApp() {
                         }
                     }
                 }, Modifier.padding(padding))
-                "Escuela DJ" -> SchoolScreen(Modifier.padding(padding))
+                "Escuela DJ" -> SchoolAcademyScreen(Modifier.padding(padding))
                 "Biblioteca" -> LibraryScreen(Modifier.padding(padding))
                 else -> AppStudioScreen(Modifier.padding(padding))
             }
