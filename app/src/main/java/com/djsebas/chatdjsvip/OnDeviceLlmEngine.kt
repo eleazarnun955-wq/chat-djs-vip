@@ -66,18 +66,9 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
             var settingsSaved = false
 
             val result = runCatching {
-                val queriedName = app.contentResolver.query(
-                    uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) cursor.getString(0) else null
-                }
-                // Algunos proveedores de Archivos no exponen DISPLAY_NAME.
-                // En ese caso usamos el último segmento del URI como respaldo.
-                val displayName = queriedName?.takeIf { it.isNotBlank() }
-                    ?: uri.lastPathSegment.orEmpty().substringAfterLast('/')
-                require(displayName.endsWith(".litertlm", ignoreCase = true)) {
-                    "Selecciona el archivo de modelo .litertlm. No se aceptan ZIP, APK ni archivos renombrados."
-                }
+                // Android SAF puede devolver nombres distintos o vacíos según el proveedor.
+                // No rechazamos el archivo por su nombre: comprobamos el contenido real
+                // al copiarlo e inicializar LiteRT-LM antes de reemplazar el modelo anterior.
 
                 check(modelDirectory.exists() || modelDirectory.mkdirs()) {
                     "No se pudo preparar el almacenamiento privado para el modelo."
