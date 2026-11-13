@@ -829,14 +829,14 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         if (tracks.isNotEmpty()) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
-                    selected = !showFavoritesOnly,
-                    onClick = { showFavoritesOnly = false },
+                    selected = !showFavoritesOnly && !showPracticeOnly,
+                    onClick = { showFavoritesOnly = false; showPracticeOnly = false },
                     label = { Text("Todas (${tracks.size})") },
                     leadingIcon = { Icon(Icons.Default.LibraryMusic, null) }
                 )
                 FilterChip(
                     selected = showFavoritesOnly,
-                    onClick = { showFavoritesOnly = true },
+                    onClick = { showFavoritesOnly = true; showPracticeOnly = false },
                     label = { Text("Favoritas (${favorites.count { it in tracks }})") },
                     leadingIcon = { Icon(Icons.Default.Favorite, null) }
                 )
