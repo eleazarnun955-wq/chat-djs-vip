@@ -14,6 +14,8 @@ import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
 import java.io.File
 import java.io.FileOutputStream
+import java.security.DigestInputStream
+import java.security.MessageDigest
 import java.util.concurrent.Executors
 
 /**
@@ -25,6 +27,8 @@ object OnDeviceLlmEngine {
     private const val PREFS = "chat_djs_vip_local_model"
     private const val MODEL_PATH = "model_path"
     private const val MODEL_DIR = "models"
+    // SHA-256 publicado para LFM2.5-350M_int4.litertlm por LiteRT Community.
+    private const val EXPECTED_MODEL_SHA256 = "c29a41cdf4148ec9f4b6e57f8e598728a05a189fdc7ca0764b013b78f9dfd52f"
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -82,20 +86,27 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     check(backup.delete()) { "No se pudo limpiar una copia de respaldo antigua." }
                 }
 
+                val sha256 = MessageDigest.getInstance("SHA-256")
                 app.contentResolver.openInputStream(uri)?.use { input ->
-                    FileOutputStream(staged).use { output ->
-                        input.copyTo(output)
-                        output.fd.sync()
+                    DigestInputStream(input, sha256).use { checkedInput ->
+                        FileOutputStream(staged).use { output ->
+                            checkedInput.copyTo(output)
+                            output.fd.sync()
+                        }
                     }
                 } ?: error("No se pudo leer el archivo seleccionado.")
                 require(staged.isFile && staged.length() > 50L * 1024L * 1024L) {
                     "El archivo parece incompleto o no es un modelo de lenguaje compatible."
                 }
+                val actualSha256 = sha256.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+                require(actualSha256.equals(EXPECTED_MODEL_SHA256, ignoreCase = true)) {
+                    "El archivo no coincide con el modelo oficial LFM2.5-350M INT4. Descárgalo de nuevo desde «Obtener modelo». SHA-256 detectado: $actualSha256"
+                }
 
-                // Liberar primero el modelo en memoria para no duplicar el consumo
-                // de RAM durante la comprobación del archivo temporal.
+                // El modelo LFM2.5 INT4 también funciona en CPU. En teléfonos de
+                // entrada evitamos inicializar OpenCL durante la importación: un
+                // fallo nativo del controlador GPU puede cerrar la app sin excepción.
                 releaseLoadedModel()
-                // Validar antes de reemplazar el archivo que ya funciona.
                 validateModelFile(app, staged)
 
                 if (target.exists()) {
@@ -188,42 +199,15 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
                     removeAll { it.contains("Consultando...") }
                 }
                 if (conversation == null || loadedPath != path) {
-                    try {
-                        ensureLoaded(app, path, historyForInitialization, useGpu = true)
-                    } catch (gpuLoadError: Throwable) {
-                        // En teléfonos con RAM limitada, la inicialización GPU puede agotar
-                        // memoria. Liberar referencias y probar CPU antes de declarar fallo.
-                        releaseLoadedModel()
-                        System.gc()
-                        try {
-                            ensureLoaded(app, path, historyForInitialization, useGpu = false)
-                        } catch (cpuLoadError: Throwable) {
-                            cpuLoadError.addSuppressed(gpuLoadError)
-                            throw cpuLoadError
-                        }
-                    }
+                    // El modelo es pequeño y el backend CPU es el camino más estable
+                    // para el Moto G24; evitamos que un driver OpenCL defectuoso cierre el proceso.
+                    ensureLoaded(app, path, historyForInitialization, useGpu = false)
                 }
                 val savedFacts = app.getSharedPreferences("chat_djs_vip_local_brain", Context.MODE_PRIVATE)
                     .getString("facts", "").orEmpty().lines().filter { it.isNotBlank() }.takeLast(10).joinToString("; ")
                 val modelPrompt = if (savedFacts.isBlank()) question
                     else "$question\n\nContexto privado guardado localmente por el usuario: $savedFacts"
-                try {
-                    checkNotNull(conversation).sendMessage(modelPrompt).toString()
-                } catch (gpuReplyError: Throwable) {
-                    if (loadedBackendIsGpu == true) {
-                        releaseLoadedModel()
-                        System.gc()
-                        try {
-                            ensureLoaded(app, path, historyForInitialization, useGpu = false)
-                            checkNotNull(conversation).sendMessage(modelPrompt).toString()
-                        } catch (cpuReplyError: Throwable) {
-                            cpuReplyError.addSuppressed(gpuReplyError)
-                            throw cpuReplyError
-                        }
-                    } else {
-                        throw gpuReplyError
-                    }
-                }
+                checkNotNull(conversation).sendMessage(modelPrompt).toString()
             }
             val answer = result.fold(
                 onSuccess = { it.ifBlank { "El modelo local no generó una respuesta. Intenta formular la pregunta de otra manera." } },
@@ -246,40 +230,28 @@ Protege la privacidad y no solicites contraseñas ni datos sensibles innecesario
     }
 
     private fun validateModelFile(context: Context, modelFile: File) {
-        // Los modelos LFM2.5 recientes guardan pesos externos TFLiteWeights.
-        // Probamos primero GPU (ruta validada para estos archivos en Android)
-        // y después CPU para equipos sin OpenCL o con GPU no compatible.
-        val backends = listOf(
-            "GPU" to Backend.GPU(),
-            "CPU" to Backend.CPU()
-        )
-        val failures = mutableListOf<String>()
-
-        for ((backendName, backend) in backends) {
-            val candidateEngine = Engine(
-                EngineConfig(
-                    modelPath = modelFile.absolutePath,
-                    backend = backend,
-                    cacheDir = context.cacheDir.path
-                )
+        // CPU primero: evita cuelgues nativos de OpenCL en GPU móviles no probadas.
+        // LiteRT-LM soporta el backend CPU para este modelo.
+        val candidateEngine = Engine(
+            EngineConfig(
+                modelPath = modelFile.absolutePath,
+                backend = Backend.CPU(),
+                cacheDir = context.cacheDir.path
             )
-            var initialized = false
-            try {
-                candidateEngine.initialize()
-                initialized = true
-                return
-            } catch (error: Throwable) {
-                failures += "$backendName: ${rootCauseMessage(error)}"
-            } finally {
-                // LiteRT-LM exige no cerrar un Engine cuya inicialización falló.
-                if (initialized) runCatching { candidateEngine.close() }
-            }
-        }
-
-        throw IllegalArgumentException(
-            "El archivo se copió, pero LiteRT-LM no pudo abrirlo. " +
-                failures.joinToString(" | "),
         )
+        var initialized = false
+        try {
+            candidateEngine.initialize()
+            initialized = true
+        } catch (error: Throwable) {
+            throw IllegalArgumentException(
+                "LiteRT-LM 0.19.1 no pudo inicializar LFM2.5-350M INT4 en CPU: ${rootCauseMessage(error)}",
+                error
+            )
+        } finally {
+            // LiteRT-LM exige no cerrar un Engine cuya inicialización falló.
+            if (initialized) runCatching { candidateEngine.close() }
+        }
     }
 
     private fun rootCauseMessage(error: Throwable): String {
