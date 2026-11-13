@@ -107,7 +107,7 @@ fun ChatDjsVipApp() {
                         }
                     }
                 }, Modifier.padding(padding))
-                "Escuela DJ" -> SchoolAcademyScreen(Modifier.padding(padding))
+                "Escuela DJ" -> SchoolAcademyScreen(Modifier.padding(padding), onOpenLibrary = { section = "Biblioteca" })
                 "Biblioteca" -> LibraryScreen(Modifier.padding(padding))
                 else -> AppStudioScreen(Modifier.padding(padding))
             }
@@ -894,7 +894,15 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                             Icon(Icons.Default.MusicNote, null, tint = Accent)
                             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                                 Text(title, fontWeight = FontWeight.Medium, maxLines = 1)
-                                Text(if (currentUri == uriString && isLoading) "Cargando…" else if (currentUri == uriString && isPlaying) "Reproduciendo" else "En biblioteca", color = Muted, fontSize = 11.sp)
+                                val metadata = remember(uriString) { readLibraryTrackMetadata(context, uri) }
+                                Text(
+                                    listOfNotNull(metadata.artist, metadata.duration, metadata.format).joinToString(" • ").ifBlank {
+                                        if (currentUri == uriString && isLoading) "Cargando…" else if (currentUri == uriString && isPlaying) "Reproduciendo" else "En biblioteca"
+                                    },
+                                    color = Muted,
+                                    fontSize = 10.sp,
+                                    maxLines = 1
+                                )
                             }
                             IconButton(onClick = {
                                 if (currentUri == uriString && isPlaying) {
@@ -1131,4 +1139,28 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
 private fun formatAudioTime(milliseconds: Int): String {
     val totalSeconds = (milliseconds.coerceAtLeast(0) / 1000)
     return String.format(Locale.getDefault(), "%d:%02d", totalSeconds / 60, totalSeconds % 60)
+}
+
+
+private data class LibraryTrackMetadata(val artist: String?, val duration: String?, val format: String?)
+
+private fun readLibraryTrackMetadata(context: android.content.Context, uri: Uri): LibraryTrackMetadata {
+    val mime = runCatching { context.contentResolver.getType(uri) }.getOrNull()
+    val format = mime?.substringAfter("/")?.uppercase(Locale.ROOT)?.takeIf { it.isNotBlank() }
+        ?: uri.lastPathSegment?.substringAfterLast('.', "")?.uppercase(Locale.ROOT)?.takeIf { it.isNotBlank() }
+    val retriever = android.media.MediaMetadataRetriever()
+    return try {
+        retriever.setDataSource(context, uri)
+        val artist = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_ARTIST)?.takeIf { it.isNotBlank() }
+        val durationMs = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+        val duration = durationMs?.let { millis ->
+            val seconds = (millis / 1000).toInt()
+            String.format(Locale.getDefault(), "%d:%02d", seconds / 60, seconds % 60)
+        }
+        LibraryTrackMetadata(artist, duration, format)
+    } catch (_: Exception) {
+        LibraryTrackMetadata(null, null, format)
+    } finally {
+        runCatching { retriever.release() }
+    }
 }
