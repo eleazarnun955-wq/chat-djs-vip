@@ -92,7 +92,7 @@ private val academyExams = listOf(
 )
 
 @Composable
-fun SchoolAcademyScreen(modifier: Modifier = Modifier) {
+fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit = {}) {
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences("chat_djs_vip_school", Context.MODE_PRIVATE) }
     var completed by remember {
@@ -151,6 +151,10 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Text("ESCUELA DJ • ACADEMIA", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Text("Aprende, practica, presenta exámenes y obtén certificados internos.", color = Muted, fontSize = 12.sp)
+        OutlinedButton(onClick = onOpenLibrary, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.LibraryMusic, contentDescription = null)
+            Text("  Abrir biblioteca musical para practicar")
+        }
         Spacer(Modifier.height(12.dp))
         val total = academyLevels.sumOf { it.topics.size }
         Text("Avance general: ${completed.size} / $total clases", color = Accent, fontWeight = FontWeight.SemiBold)
