@@ -21,16 +21,16 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 4. Después puedes conversar sin conexión. Mantén espacio libre suficiente para el archivo y el uso de memoria del modelo.
 
 ## Funciones de la aplicación
-- Escuela DJ con contenidos sobre software, controladoras, CDJ, mezcladoras, tornamesas, teoría musical y preparación de eventos.
-- Biblioteca musical local con reproducción, favoritos y cola persistente.
+- Escuela DJ con tres niveles, 12 clases, prácticas evaluadas, 15 preguntas por nivel (45 en total), historial de resultados por alumno y evaluación, y certificados internos descargables en PDF.
+- Biblioteca musical local con búsqueda por título, artista y formato; colección de prácticas; reproducción, favoritos, cola persistente y eliminación de referencias sin borrar los archivos originales.
 - Estudio de Aplicaciones con importación ZIP, explorador/editor de archivos, guardado de proyectos, diagnóstico estático y exportación ZIP/Markdown.
 - DJ SEBAS PRODUCCIONES integrado: herramientas de audio, edición y exportación MP3 local.
 - Las funciones de audio trabajan con archivos del dispositivo; la generación de música por IA no forma parte de esta versión.
 
 ## Construcción
-- Versión: 3.7.8.
+- Versión: 3.8.2.
 - applicationId: com.djsebas.chatdjsvip.v320 (se conserva para actualizar la instalación existente).
-- versionCode: 50.
+- versionCode: 54.
 - El workflow Android APK ejecuta pruebas unitarias, Android Lint y compila app-debug.apk.
 - La aplicación no declara permiso INTERNET; el modelo se obtiene fuera de la app y luego se importa localmente.
 - El Estudio de Aplicaciones realiza análisis estático local. La compilación y publicación remota de proyectos importados no están implementadas.
