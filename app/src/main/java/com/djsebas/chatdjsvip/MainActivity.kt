@@ -35,10 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 
-private val Ink = Color(0xFF101820)
-private val Panel = Color(0xFF18232D)
-private val Accent = Color(0xFF16C79A)
-private val Muted = Color(0xFF9AAAB7)
+val Ink = Color(0xFF101820)
+val Panel = Color(0xFF18232D)
+val Accent = Color(0xFF16C79A)
+val Muted = Color(0xFF9AAAB7)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -498,7 +498,7 @@ Responde con pasos claros y un ejercicio práctico. Si pregunta por botones, men
     }
 }
 
-private fun lessonFor(topic: String): String = when (topic) {
+fun lessonFor(topic: String): String = when (topic) {
     "Serato DJ" -> "RUTA DE APRENDIZAJE\n1. Instala la versión compatible y conecta tu controlador apagado.\n2. Abre Serato y revisa Setup: audio, dispositivo y firmware.\n3. Importa música desde Files y analiza BPM y tonalidad.\n4. Organiza crates y revisa que cada pista tenga beatgrid correcto.\n5. Marca Hot Cues y prueba loops de 4 u 8 compases.\n6. Preescucha con CUE, iguala tempo y mezcla usando ganancia y EQ.\nDime tu versión y modelo de controlador para adaptar los nombres de botones."
     "rekordbox" -> "RUTA DE APRENDIZAJE\n1. Elige el modo Export para preparar USB o Performance para mezclar.\n2. Importa y analiza las pistas.\n3. Corrige beatgrids si el análisis detectó mal los golpes.\n4. Configura Memory Cues y Hot Cues.\n5. Exporta la colección a una memoria USB compatible y expúlsala de forma segura.\n6. Prueba el USB en tu CDJ antes de un evento. Las opciones varían según versión y equipo."
     "VirtualDJ" -> "RUTA DE APRENDIZAJE\n1. Configura el controlador en Settings > Controllers.\n2. Selecciona la tarjeta de sonido y asigna salidas Master y Headphones.\n3. Carga pistas en los decks y analiza BPM/Key.\n4. Usa auriculares para preescuchar el deck entrante.\n5. Practica loops, hot cues y transiciones con EQ.\n6. Guarda cambios de mapeo solo después de probarlos."
