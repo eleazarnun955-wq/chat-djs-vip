@@ -356,6 +356,10 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
     )
     var selectedTopic by remember { mutableStateOf<String?>(null) }
     var searchText by remember { mutableStateOf("") }
+    var studentQuestion by remember { mutableStateOf("") }
+    var teacherAnswer by remember { mutableStateOf("") }
+    var askingTeacher by remember { mutableStateOf(false) }
+    val modelReady = remember(context) { OnDeviceLlmEngine.hasInstalledModel(context) }
     val filteredTopics = topics.filter { (name, desc) ->
         name.contains(searchText, ignoreCase = true) || desc.contains(searchText, ignoreCase = true)
     }
@@ -393,37 +397,104 @@ private fun SchoolScreen(modifier: Modifier = Modifier) {
             }
         } else LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(filteredTopics) { (name, desc) ->
-                Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable { selectedTopic = name }) {
+                Surface(color = Panel, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().clickable {
+                    selectedTopic = name
+                    studentQuestion = ""
+                    teacherAnswer = ""
+                }) {
                     Row(Modifier.padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(if (name in completedTopics) Icons.Default.CheckCircle else Icons.Default.MusicNote, null, tint = if (name in completedTopics) Accent else Accent, modifier = Modifier.size(28.dp))
+                        Icon(if (name in completedTopics) Icons.Default.CheckCircle else Icons.Default.School, null, tint = Accent, modifier = Modifier.size(28.dp))
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text(name, fontWeight = FontWeight.Bold)
                             Text(desc, color = Muted, fontSize = 13.sp)
                             if (name in completedTopics) Text("Tema completado", color = Accent, fontSize = 11.sp)
                         }
-                        if (name in completedTopics) Icon(Icons.Default.Verified, contentDescription = "Completado", tint = Accent)
+                        Icon(Icons.Default.ChevronRight, contentDescription = "Abrir lección", tint = Accent)
                     }
                 }
             }
         }
-        selectedTopic?.let { topic ->
-            AlertDialog(
-                onDismissRequest = { selectedTopic = null },
-                title = { Text(topic) },
-                text = { Text(lessonFor(topic), fontSize = 14.sp) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        val updated = if (topic in completedTopics) completedTopics - topic else completedTopics + topic
-                        saveProgress(updated)
-                        selectedTopic = null
-                    }) { Text(if (topic in completedTopics) "Quitar progreso" else "Marcar como aprendido") }
-                },
-                dismissButton = { TextButton(onClick = { selectedTopic = null }) { Text("Cerrar") } },
-                containerColor = Panel,
-                titleContentColor = Color.White,
-                textContentColor = Color.White
-            )
-        }
+    }
+    selectedTopic?.let { topic ->
+        AlertDialog(
+            onDismissRequest = { if (!askingTeacher) selectedTopic = null },
+            title = { Text("Clase: $topic") },
+            text = {
+                Column {
+                    Text(lessonFor(topic), fontSize = 14.sp, color = Color.White)
+                    Spacer(Modifier.height(12.dp))
+                    Text("PREGÚNTALE AL PROFESOR DJ", fontWeight = FontWeight.Bold, color = Accent, fontSize = 13.sp)
+                    Text(
+                        if (modelReady) "Tu cerebro local puede explicar esta lección y resolver tus dudas."
+                        else "Cerebro local no detectado: puedes consultar la guía básica incluida.",
+                        color = Muted, fontSize = 11.sp
+                    )
+                    OutlinedTextField(
+                        value = studentQuestion,
+                        onValueChange = { studentQuestion = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Ej. ¿Cómo ajusto el beatgrid?") },
+                        enabled = !askingTeacher,
+                        minLines = 2
+                    )
+                    if (askingTeacher) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(18.dp), color = Accent, strokeWidth = 2.dp)
+                            Text(" El profesor está preparando la explicación…", color = Muted, fontSize = 12.sp)
+                        }
+                    }
+                    if (teacherAnswer.isNotBlank()) {
+                        Surface(color = Color(0xFF123D36), shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(10.dp)) {
+                                Text("RESPUESTA DEL PROFESOR", color = Accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(teacherAnswer, color = Color.White, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Column(horizontalAlignment = Alignment.End) {
+                    TextButton(
+                        enabled = studentQuestion.isNotBlank() && !askingTeacher,
+                        onClick = {
+                            val question = studentQuestion.trim()
+                            askingTeacher = true
+                            teacherAnswer = ""
+                            val prompt = """
+Eres el profesor de la Escuela DJ de CHAT DJ'S VIP. Enseña en español mexicano, con paciencia y de forma práctica.
+Tema de la clase: $topic
+Material de la lección:
+${lessonFor(topic)}
+Duda del alumno: $question
+Responde con pasos claros y un ejercicio práctico. Si pregunta por botones, menús, conexiones o ajustes, primero solicita marca/modelo y versión cuando falten. No inventes controles, valores de calibración ni compatibilidad. Distingue software (Serato DJ, rekordbox, VirtualDJ, Traktor y djay) y equipo físico. Si no estás seguro, dilo.
+                            """.trimIndent()
+                            if (modelReady) {
+                                OnDeviceLlmEngine.reply(context, prompt, emptyList()) { answer ->
+                                    teacherAnswer = answer
+                                    askingTeacher = false
+                                }
+                            } else {
+                                teacherAnswer = djKnowledgeReply(question)
+                                askingTeacher = false
+                            }
+                        }
+                    ) { Text("Preguntar al profesor") }
+                    TextButton(
+                        onClick = {
+                            saveProgress(if (topic in completedTopics) completedTopics - topic else completedTopics + topic)
+                            selectedTopic = null
+                        }
+                    ) { Text(if (topic in completedTopics) "Quitar tema completado" else "Marcar como aprendido") }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { if (!askingTeacher) selectedTopic = null }) { Text("Cerrar") }
+            },
+            containerColor = Panel,
+            titleContentColor = Color.White,
+            textContentColor = Color.White
+        )
     }
 }
 
