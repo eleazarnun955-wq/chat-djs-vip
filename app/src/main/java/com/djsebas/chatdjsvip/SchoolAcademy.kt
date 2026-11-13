@@ -1,4 +1,19 @@
-package com.djsebas.chatdjsvip
+package ,
+        AcademyQuestion("El limitador del PA se activa constantemente. ¿Qué haces?", listOf("Ignorarlo", "Reducir salida y revisar ganancia en toda la cadena", "Aumentar graves"), 1, "El limitador señala que el sistema está llegando a su límite."),
+        AcademyQuestion("Dos pistas tienen BPM iguales pero los golpes no coinciden. ¿Qué revisas?", listOf("Tonalidad", "Color de ondas", "Fase, beatgrid y tempo variable"), 2, "BPM igual no garantiza sincronía; comprueba downbeat y fase."),
+        AcademyQuestion("Un micrófono produce acople. ¿Qué haces?", listOf("Bajar nivel, cambiar posición y ajustar EQ con moderación", "Subir ganancia", "Apuntarlo a la bocina"), 0, "Reduce realimentación evitando apuntar al PA y ajustando nivel."),
+        AcademyQuestion("Para un tramo largo con salidas y entradas balanceadas, ¿qué cable eliges?", listOf("Cable no balanceado", "XLR balanceado adecuado", "Adaptador de audífonos"), 1, "Una conexión balanceada compatible ayuda a rechazar interferencias."),
+        AcademyQuestion("Falla la energía del equipo principal durante un evento. ¿Qué plan ayuda?", listOf("Esperar", "Buscar Wi-Fi", "Respaldo de energía y reproducción previamente probado"), 2, "Planifica respaldos y procedimientos seguros antes del evento."),
+        AcademyQuestion("El beatmatch se separa progresivamente. ¿Qué ajustas?", listOf("Master", "Graves", "Pequeños ajustes de pitch y escucha durante varios compases"), 2, "Corrige ligeramente el tempo relativo y confirma la estabilidad."),
+        AcademyQuestion("El canal distorsiona aunque Master no está en rojo. ¿Qué inspeccionas?", listOf("Trim, EQ, efectos y medidor del canal", "Solo bocinas", "Iluminación"), 0, "El clipping puede originarse antes del Master."),
+        AcademyQuestion("El público escucha la pista que preparas. ¿Qué control revisas?", listOf("Brillo", "CUE/monitor y fader o crossfader", "Camelot"), 1, "Confirma que la pista esté solo en monitoreo y no enviada al Master."),
+        AcademyQuestion("Un loop de 4 beats pierde el ritmo. ¿Qué corriges?", listOf("Volumen", "Bocina", "Beatgrid, cuantización y puntos de inicio/fin"), 2, "Alinea los límites del loop con los beats."),
+        AcademyQuestion("La controladora deja de responder pero el audio sigue. ¿Qué haces?", listOf("Mantener audio y activar respaldo sin desconexiones bruscas", "Desconectar todo", "Reiniciar sin transición"), 0, "Prioriza continuidad y revisa USB/alimentación cuando sea seguro."),
+        AcademyQuestion("Conectas audífonos y no escuchas CUE. ¿Qué revisas?", listOf("Salida de audífonos y mezcla Cue/Master", "Color de carátula", "Volumen del micrófono"), 0, "Comprueba salida asignada, mezcla Cue/Master y nivel de phones."),
+        AcademyQuestion("Una bocina activa no reproduce sonido. ¿Qué haces primero?", listOf("Subir todo al máximo", "Bajar niveles y revisar alimentación, entrada y señal Master", "Desconectar a volumen alto"), 1, "Sigue la ruta de señal con niveles bajos y revisa cada conexión."),
+        AcademyQuestion("Al abrir el canal entrante el volumen se dispara. ¿Cómo corriges?", listOf("Dejar ambos faders al máximo", "Subir Master", "Equilibrar ganancia y hacer entrada gradual con EQ"), 2, "Ajusta ganancia y mezcla progresivamente para evitar sumar dos señales completas."),
+        AcademyQuestion("El archivo no aparece en el software DJ. ¿Qué revisas?", listOf("Ubicación, formato compatible e importar/analizar de nuevo", "Formatear la memoria", "Reinstalar todo"), 0, "Comprueba ubicación y formato y actualiza la biblioteca."),
+        AcademyQuestion("Aparece zumbido en el equipo. ¿Qué procedimiento es seguro?", listOf("Subir volumen", "Bajar niveles y revisar conexiones y alimentación", "Desconectar tierra de protección"), 1, "Aísla el origen con niveles bajos. Nunca elimines la tierra de seguridad.")com.djsebas.chatdjsvip
 
 import android.content.Context
 import android.content.Intent
