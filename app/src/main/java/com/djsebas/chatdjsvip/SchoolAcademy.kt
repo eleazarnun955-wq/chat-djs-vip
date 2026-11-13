@@ -57,21 +57,41 @@ private val academyExams = listOf(
         AcademyQuestion("Vas a preparar una canción nueva mientras la pista actual sigue sonando al público. ¿Qué función utilizas?", listOf("El botón Sync sin escuchar", "CUE para preescucharla en audífonos", "El control Master"), 1, "CUE envía la señal a los audífonos para preparar la entrada sin mandarla al público."),
         AcademyQuestion("La siguiente canción tiene 124 BPM y la que suena está a 128 BPM. ¿Qué indica esa diferencia?", listOf("Que debes subir el volumen cuatro puntos", "Que las canciones tienen la misma tonalidad", "Que debes ajustar el tempo para igualar los golpes"), 2, "La diferencia inicial es de 4 BPM. Ajusta el pitch o usa Sync con criterio y confirma escuchando."),
         AcademyQuestion("Conectas una controladora y no se escucha nada por las bocinas. ¿Cuál es la revisión más segura?", listOf("Subir todos los controles al máximo", "Revisar salida Master, cables, entrada de bocinas y volumen a nivel bajo", "Desconectar todo mientras suena"), 1, "Sigue la ruta de señal desde la salida Master hasta la entrada de las bocinas y prueba con niveles bajos."),
-        AcademyQuestion("En una canción preparaste un punto para entrar directamente al primer golpe del coro. ¿Qué función te ayuda?", listOf("Hot Cue", "Ganancia", "Filtro pasa-altas"), 0, "Un Hot Cue guarda un punto de acceso rápido dentro de la pista.")
+        AcademyQuestion("En una canción preparaste un punto para entrar directamente al primer golpe del coro. ¿Qué función te ayuda?", listOf("Hot Cue", "Ganancia", "Filtro pasa-altas"), 0, "Un Hot Cue guarda un punto de acceso rápido dentro de la pista."),
+        AcademyQuestion("Al conectar tus audífonos no escuchas la pista de preescucha. ¿Qué revisas primero?", listOf("La salida Phones y la asignación Cue", "El color de la carátula", "El brillo de la pantalla"), 0, "Comprueba la salida física de audífonos, el nivel Phones y que el canal tenga CUE activado."),
+        AcademyQuestion("El sonido se escucha distorsionado incluso con el Master bajo. ¿Qué debes comprobar?", listOf("Solo el volumen del teléfono", "Ganancia de canal y niveles de entrada", "La tonalidad de la canción"), 1, "La distorsión puede originarse antes del Master. Revisa trim, entrada y medidores de cada canal."),
+        AcademyQuestion("Tu biblioteca muestra una canción, pero el software indica archivo perdido. ¿Qué haces?", listOf("Borras toda la colección", "Formateas la memoria", "Localizas el archivo y corriges su ruta"), 2, "Verifica que el archivo exista y vuelve a enlazar su ubicación sin borrar la biblioteca."),
+        AcademyQuestion("Antes de comenzar un evento, ¿qué prueba evita sorpresas con la música?", listOf("Probar reproducción, salidas y audífonos con niveles bajos", "Subir todo al máximo", "Esperar a que llegue el público"), 0, "Haz una prueba de señal completa y confirma que Master y preescucha funcionen."),
+        AcademyQuestion("¿Qué haces si dos canciones tienen BPM parecidos pero sus golpes se separan?", listOf("Aumentas el volumen", "Ajustas ligeramente el pitch y vuelves a escuchar", "Cambias el balance estéreo"), 1, "BPM cercanos no garantizan sincronía. Ajusta el tempo relativo y confirma durante varios compases.")
     ),
     listOf(
         AcademyQuestion("En rekordbox el beatgrid queda adelantado respecto a los golpes reales de una canción con tempo variable. ¿Qué haces?", listOf("Ignoras el desfase y activas Sync", "Subes el volumen", "Corriges el beatgrid manualmente y verificas escuchando"), 2, "En pistas con tempo variable el análisis automático puede fallar. Ajusta los marcadores y comprueba varios compases."),
         AcademyQuestion("Durante una transición necesitas extender ocho compases porque la siguiente pista aún no está lista. ¿Qué recurso usarías?", listOf("Un loop bien colocado y sincronizado", "El Master al máximo", "Desactivar la preescucha"), 0, "Un loop permite repetir una sección musical; cuida que sus límites coincidan con el fraseo."),
         AcademyQuestion("Escuchas la pista entrante en audífonos, pero el público no la oye. ¿Qué situación es más probable?", listOf("El archivo está dañado necesariamente", "Está en preescucha CUE y aún no la envías al Master", "El BPM está demasiado alto"), 1, "La preescucha es independiente de la mezcla principal. Abre el canal o mueve el crossfader según tu configuración."),
         AcademyQuestion("Un efecto Echo está embarrando el final de la mezcla. ¿Cuál es la mejor corrección?", listOf("Activar todos los efectos", "Subir la resonancia al máximo", "Reducir mezcla y feedback, sincronizarlo y retirarlo a tiempo"), 2, "Los efectos deben acompañar el fraseo. Controla wet/dry y feedback para no saturar ni llenar demasiado el espacio."),
-        AcademyQuestion("Preparaste un USB para tocar en CDJ de un evento. ¿Qué reduce más el riesgo de incompatibilidad?", listOf("Probar el USB en el equipo destino y llevar respaldo", "Cambiar los nombres de todas las pistas al azar", "Confiar únicamente en que el ordenador lo reconoce"), 0, "Verifica formato, exportación y lectura en el equipo que usarás. Lleva una segunda copia.")
+        AcademyQuestion("Preparaste un USB para tocar en CDJ de un evento. ¿Qué reduce más el riesgo de incompatibilidad?", listOf("Probar el USB en el equipo destino y llevar respaldo", "Cambiar los nombres de todas las pistas al azar", "Confiar únicamente en que el ordenador lo reconoce"), 0, "Verifica formato, exportación y lectura en el equipo que usarás. Lleva una segunda copia."),
+        AcademyQuestion("El controlador deja de responder durante la sesión, pero el audio principal sigue sonando. ¿Qué haces?", listOf("Desconectas todos los cables de inmediato", "Mantienes la reproducción y activas el respaldo de forma segura", "Reinicias el equipo sin avisar"), 1, "Prioriza la continuidad del audio. Cambia al respaldo y revisa USB o alimentación cuando sea seguro."),
+        AcademyQuestion("Un loop de cuatro tiempos no cierra correctamente y produce un salto audible. ¿Qué corriges?", listOf("El volumen Master", "El color de la forma de onda", "Los puntos de inicio y fin y el beatgrid"), 2, "Alinea los límites del loop con los golpes y revisa cuantización y beatgrid."),
+        AcademyQuestion("El micrófono comienza a acoplarse cuando el presentador se acerca a una bocina. ¿Qué haces?", listOf("Bajas el nivel, cambias la posición y ajustas EQ con moderación", "Subes la ganancia del micrófono", "Apuntas el micrófono hacia la bocina"), 0, "Reduce la realimentación bajando nivel y evitando que el micrófono apunte al sistema de PA."),
+        AcademyQuestion("El efecto Echo deja una cola demasiado larga al terminar una frase vocal. ¿Cómo lo controlas?", listOf("Aumentas feedback", "Reduces feedback y mezcla del efecto y lo retiras a tiempo", "Activas varios efectos adicionales"), 1, "Controla wet/dry y feedback. El efecto debe acompañar el fraseo sin tapar la siguiente sección."),
+        AcademyQuestion("Una pista tiene cambios de tempo y el Sync comienza a desalinearla. ¿Qué conviene hacer?", listOf("Ignorar el desfase", "Subir el Master", "Revisar el beatgrid y corregir manualmente los tramos necesarios"), 2, "En música con tempo variable revisa varios puntos del beatgrid y confirma la alineación de oído.")
     ),
     listOf(
         AcademyQuestion("En una mezcla larga, la pista entrante tiene una frase de 16 compases y la saliente está por iniciar otra. ¿Qué estrategia es más musical?", listOf("Entrar en cualquier golpe", "Alinear el inicio de frase y controlar la energía de ambas pistas", "Subir ambos canales al rojo"), 1, "Alinear frases ayuda a que cambios, voces y golpes importantes coincidan de forma natural."),
         AcademyQuestion("Una tornamesa suena muy bajo y con poco grave al conectarla a una entrada LINE. La cápsula requiere preamplificación phono. ¿Qué necesitas?", listOf("Un cable USB", "Subir el Master al máximo", "Conectar a PHONO o usar un preamplificador phono adecuado"), 2, "La señal de cápsula necesita preamplificación y ecualización RIAA. Usa PHONO o un preamp externo compatible."),
         AcademyQuestion("Dos pistas están en tonalidades cercanas según Camelot, pero al mezclarlas las voces chocan. ¿Qué decisión es mejor?", listOf("Confiar ciegamente en el número Camelot", "Escuchar, probar otra sección o elegir otra pista", "Aumentar todos los graves"), 1, "La compatibilidad tonal orienta, pero no garantiza una mezcla agradable. El oído y el arreglo musical tienen prioridad."),
         AcademyQuestion("En un evento falla el ordenador principal. ¿Qué preparación permite continuar con menos interrupción?", listOf("Depender de una conexión a internet", "Esperar a que vuelva sin avisar", "Tener música y equipo de respaldo probado, además de una lista alternativa"), 2, "Un plan de contingencia incluye biblioteca duplicada, medio alternativo y revisión previa de conexiones."),
-        AcademyQuestion("El indicador Master marca clipping cuando entran dos canciones a la vez. ¿Qué haces?", listOf("Reduces ganancias y equilibras canales antes de llegar al Master", "Aumentas el Master todavía más", "Subes graves y agudos en ambos canales"), 0, "Controla niveles desde la entrada y deja margen en el bus Master. El rojo indica riesgo de distorsión.")
+        AcademyQuestion("El indicador Master marca clipping cuando entran dos canciones a la vez. ¿Qué haces?", listOf("Reduces ganancias y equilibras canales antes de llegar al Master", "Aumentas el Master todavía más", "Subes graves y agudos en ambos canales"), 0, "Controla niveles desde la entrada y deja margen en el bus Master. El rojo indica riesgo de distorsión."),
+        AcademyQuestion("El limitador del sistema PA se activa repetidamente durante el drop. ¿Qué haces?", listOf("Ignoras el indicador", "Reduces la salida y revisas la ganancia en toda la cadena", "Aumentas todavía más los graves"), 1, "El limitador indica que el sistema está llegando a su límite. Corrige niveles desde la fuente hasta el PA."),
+        AcademyQuestion("Dos pistas muestran el mismo BPM, pero sus golpes no coinciden. ¿Qué revisas?", listOf("Solo la tonalidad", "El color de las ondas", "La fase, el downbeat y el beatgrid"), 2, "Un BPM igual no garantiza sincronía. Comprueba fase, downbeat y posibles cambios de tempo."),
+        AcademyQuestion("Una conexión larga entre mezcladora y PA presenta interferencias. ¿Qué conexión es preferible si ambos equipos la admiten?", listOf("Una conexión balanceada XLR adecuada", "Un cable de audífonos largo", "Un cable no balanceado improvisado"), 0, "Una conexión balanceada compatible ayuda a rechazar interferencias en recorridos largos."),
+        AcademyQuestion("Falla la energía del equipo principal en medio de un evento. ¿Qué plan ayuda a continuar?", listOf("Esperar sin avisar", "Usar un respaldo de energía y reproducción previamente probado", "Buscar una red Wi-Fi"), 1, "Prepara antes del evento respaldo de energía cuando corresponda, música duplicada y una ruta alternativa de reproducción."),
+        AcademyQuestion("El canal distorsiona aunque el medidor Master no está en rojo. ¿Qué inspeccionas?", listOf("Solo las bocinas", "La iluminación del escenario", "Trim, EQ, efectos y medidor del canal"), 2, "El clipping puede originarse en una etapa previa al Master. Revisa cada punto de la cadena de señal."),
+        AcademyQuestion("El público escucha la pista que estás preparando en audífonos. ¿Qué control revisas?", listOf("CUE/monitor y el fader o crossfader", "El brillo de pantalla", "La tonalidad Camelot"), 0, "Confirma que la pista esté asignada solo al monitoreo y que no esté enviada al Master."),
+        AcademyQuestion("Una bocina activa no reproduce señal durante la prueba. ¿Cuál es el procedimiento inicial?", listOf("Subir todos los controles al máximo", "Bajar niveles y revisar alimentación, entrada y señal Master", "Desconectar cables a volumen alto"), 1, "Sigue la ruta de señal con niveles bajos y comprueba alimentación, cableado y entrada."),
+        AcademyQuestion("Al abrir el canal entrante el volumen se dispara. ¿Cómo corriges la transición?", listOf("Dejas ambos faders al máximo", "Subes el Master", "Equilibras ganancias y haces una entrada gradual con EQ"), 2, "Ajusta la ganancia y mezcla progresivamente para evitar sumar dos señales completas."),
+        AcademyQuestion("Una canción no aparece en el software DJ antes de salir a tocar. ¿Qué revisas?", listOf("Ubicación, formato compatible e importación/ análisis", "Formateas la memoria inmediatamente", "Reinstalas el software sin revisar"), 0, "Comprueba la ubicación y el formato del archivo y vuelve a importar o analizar la pista."),
+        AcademyQuestion("Aparece un zumbido en el sistema de sonido. ¿Qué procedimiento es seguro?", listOf("Subir el volumen", "Bajar niveles y revisar conexiones y alimentación", "Desconectar la tierra de protección"), 1, "Aísla el origen con niveles bajos y revisa conexiones y alimentación. Nunca elimines la tierra de seguridad.")
     )
 )
 
@@ -103,6 +123,11 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier) {
     var practicalOpen by remember { mutableStateOf(false) }
     var practicalChecks by remember { mutableStateOf(setOf<Int>()) }
     var practicalResult by remember { mutableStateOf<String?>(null) }
+    var practicalScores by remember {
+        mutableStateOf(academyLevels.flatMap { it.topics }.associate { topic ->
+            topic.name to prefs.getInt("practical_score_${topic.name}", -1)
+        })
+    }
     val practicalSteps = listOf(
         "Prepara la pista entrante y confirma que el archivo y la salida de audio funcionan.",
         "Preescucha con CUE en audífonos sin enviar todavía la pista al público.",
@@ -234,7 +259,11 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier) {
                     Text(lessonFor(topic.name), color = Color.White, fontSize = 13.sp)
                     Spacer(Modifier.height(10.dp))
                     Text("PRÁCTICA", color = Accent, fontWeight = FontWeight.Bold)
-                    Text("Realiza los pasos de la lección con tu equipo o software. Después marca la clase como completada para registrar tu avance.", color = Color.White, fontSize = 12.sp)
+                    Text("Realiza los pasos de la lección con tu equipo o software. Debes aprobar la evaluación práctica con 70% o más para registrar esta clase como completada.", color = Color.White, fontSize = 12.sp)
+                    val savedPracticalScore = practicalScores[topic.name] ?: -1
+                    if (savedPracticalScore >= 0) {
+                        Text("Última evaluación práctica: $savedPracticalScore% ${if (savedPracticalScore >= 70) "• Aprobada" else "• Necesitas repetirla"}", color = if (savedPracticalScore >= 70) Accent else Color(0xFFFFB74D), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    }
                     Spacer(Modifier.height(12.dp))
                     Text("PROFESOR DJ CON CEREBRO LOCAL", color = Accent, fontWeight = FontWeight.Bold)
                     Text(if (modelReady) "Conectado al modelo local instalado." else "Modelo local no detectado; se usará la guía básica.", color = Muted, fontSize = 11.sp)
@@ -288,10 +317,19 @@ Responde paso a paso y propone una práctica verificable. No inventes botones, c
                             }
                         }
                     ) { Text("Preguntar al profesor") }
-                    TextButton(onClick = {
-                        saveCompleted(completed + topic.name)
-                        selectedTopic = null
-                    }) { Text(if (topic.name in completed) "Clase completada ✓" else "Marcar práctica completada") }
+                    TextButton(
+                        enabled = topic.name in completed || (practicalScores[topic.name] ?: -1) >= 70,
+                        onClick = {
+                            saveCompleted(completed + topic.name)
+                            selectedTopic = null
+                        }
+                    ) {
+                        Text(when {
+                            topic.name in completed -> "Clase completada ✓"
+                            (practicalScores[topic.name] ?: -1) >= 70 -> "Registrar clase completada"
+                            else -> "Aprueba la práctica para continuar"
+                        })
+                    }
                 }
             },
             dismissButton = { TextButton(onClick = { if (!askingTeacher) selectedTopic = null }) { Text("Cerrar") } },
@@ -329,6 +367,10 @@ Responde paso a paso y propone una práctica verificable. No inventes botones, c
             confirmButton = {
                 TextButton(onClick = {
                     val score = practicalChecks.size * 20
+                    selectedTopic?.let { topic ->
+                        practicalScores = practicalScores + (topic.name to score)
+                        prefs.edit().putInt("practical_score_${topic.name}", score).apply()
+                    }
                     practicalResult = "Calificación práctica: $score/100. " + when {
                         score == 100 -> "Excelente: completaste todos los pasos de la mezcla."
                         score >= 70 -> "Buen trabajo. Repasa los pasos que faltaron y vuelve a practicar."
