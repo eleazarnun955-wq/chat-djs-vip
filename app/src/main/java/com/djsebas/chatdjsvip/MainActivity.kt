@@ -700,7 +700,6 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
         durationMs = 0
         seekPositionMs = 0f
         isSeeking = false
-        playbackSpeed = 1f
     }
 
     fun playTrack(uriString: String, title: String) {
@@ -755,15 +754,15 @@ private fun LibraryScreen(modifier: Modifier = Modifier) {
                     }
                 }
                 mp.setOnErrorListener { _, _, _ ->
-                    isLoading = false
-                    isPlaying = false
                     stopPlayback()
+                    android.widget.Toast.makeText(context, "No se pudo reproducir este archivo. Comprueba que siga disponible y sea compatible.", android.widget.Toast.LENGTH_LONG).show()
                     true
                 }
                 mp.prepareAsync()
             }
         }.onFailure {
             stopPlayback()
+            android.widget.Toast.makeText(context, "No se pudo abrir esta canción. Revisa el permiso del archivo o su formato.", android.widget.Toast.LENGTH_LONG).show()
         }
     }
 
