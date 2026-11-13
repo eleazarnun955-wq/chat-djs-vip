@@ -499,6 +499,26 @@ Responde con pasos claros y un ejercicio práctico. Si pregunta por botones, men
 }
 
 fun lessonFor(topic: String): String = when (topic) {
+    "Controladoras, CDJ y mezcladoras" -> """MAPA DEL EQUIPO DJ Y PRÁCTICA GUIADA
+OBJETIVO: reconocer el recorrido de la señal y operar con seguridad.
+1. DECKS: cada deck reproduce una pista. Localiza Play/Pause, Cue, jog wheel, pitch fader y controles de loops.
+2. CANAL: sigue la señal desde Trim/Gain hasta EQ, fader y crossfader. El Trim ajusta entrada; el fader controla cuánto aporta el canal a la mezcla.
+3. MASTER: identifica Master Out y conecta a bocinas activas o amplificador compatible. No conectes una salida de potencia a una entrada de línea.
+4. AUDÍFONOS: conecta PHONES, pulsa CUE del canal entrante y ajusta el nivel de audífonos. Comprueba que no se envía al público.
+5. MEDIDORES: reproduce una sección fuerte y ajusta Trim sin mantener los medidores en rojo. Deja margen en Master.
+6. PRÁCTICA: con volúmenes bajos, reproduce una pista, preescucha otra y cambia entre canales. Anota qué control ajusta entrada, mezcla y salida.
+RETO: explica con tus palabras la ruta Deck → canal → Master → bocinas. Si me dices marca y modelo, adapto el mapa a tu equipo.
+ERRORES A EVITAR: conectar con volumen alto, confundir PHONO con LINE y corregir saturación subiendo el Master."""
+    "Controladoras, CDJ y mezcladoras DJ" -> """MAPA DEL EQUIPO DJ Y PRÁCTICA GUIADA
+OBJETIVO: reconocer decks, canales, salidas y monitoreo. Identifica Play/Pause, Cue, jog, pitch, Trim, EQ, fader, crossfader y Master.
+1. Cada deck reproduce una pista independiente.
+2. La señal entra al canal; Trim ajusta nivel de entrada, EQ modifica frecuencias y el fader regula el nivel del canal.
+3. Master Out alimenta bocinas activas o un amplificador compatible.
+4. PHONES permite preescuchar; activa CUE en el canal entrante y ajusta el nivel de audífonos.
+5. Reproduce una sección fuerte y evita que los medidores permanezcan en rojo.
+6. PRÁCTICA: reproduce una pista, prepara otra con CUE y realiza un cambio suave con niveles bajos.
+RETO: describe la ruta Deck → canal → Master → bocinas. Dime marca y modelo para adaptar el diagrama.
+"""
     "Serato DJ" -> "RUTA DE APRENDIZAJE\n1. Instala la versión compatible y conecta tu controlador apagado.\n2. Abre Serato y revisa Setup: audio, dispositivo y firmware.\n3. Importa música desde Files y analiza BPM y tonalidad.\n4. Organiza crates y revisa que cada pista tenga beatgrid correcto.\n5. Marca Hot Cues y prueba loops de 4 u 8 compases.\n6. Preescucha con CUE, iguala tempo y mezcla usando ganancia y EQ.\nDime tu versión y modelo de controlador para adaptar los nombres de botones."
     "rekordbox" -> "RUTA DE APRENDIZAJE\n1. Elige el modo Export para preparar USB o Performance para mezclar.\n2. Importa y analiza las pistas.\n3. Corrige beatgrids si el análisis detectó mal los golpes.\n4. Configura Memory Cues y Hot Cues.\n5. Exporta la colección a una memoria USB compatible y expúlsala de forma segura.\n6. Prueba el USB en tu CDJ antes de un evento. Las opciones varían según versión y equipo."
     "VirtualDJ" -> "RUTA DE APRENDIZAJE\n1. Configura el controlador en Settings > Controllers.\n2. Selecciona la tarjeta de sonido y asigna salidas Master y Headphones.\n3. Carga pistas en los decks y analiza BPM/Key.\n4. Usa auriculares para preescuchar el deck entrante.\n5. Practica loops, hot cues y transiciones con EQ.\n6. Guarda cambios de mapeo solo después de probarlos."
