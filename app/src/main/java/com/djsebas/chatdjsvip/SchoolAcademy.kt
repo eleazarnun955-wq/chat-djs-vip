@@ -2,6 +2,14 @@ package com.djsebas.chatdjsvip
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -102,6 +110,16 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
             List(json.length()) { json.getString(it) }.toSet()
         }.getOrDefault(emptySet()))
     }
+    var studentName by remember { mutableStateOf(prefs.getString("student_name", "") ?: "") }
+    var pendingCertificate by remember { mutableStateOf<Pair<String, Int>?>(null) }
+    val certificateLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        val data = pendingCertificate
+        pendingCertificate = null
+        if (uri != null && data != null) {
+            val saved = runCatching { writeAcademyCertificate(context, uri, studentName.ifBlank { "Alumno DJ" }, data.first, data.second) }.isSuccess
+            android.widget.Toast.makeText(context, if (saved) "Certificado PDF guardado correctamente" else "No se pudo guardar el certificado", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     var scores by remember {
         mutableStateOf(listOf(0, 0, 0).mapIndexed { index, _ -> prefs.getInt("exam_score_$index", -1) })
     }
@@ -151,6 +169,7 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
     Column(modifier.fillMaxSize().padding(16.dp)) {
         Text("ESCUELA DJ • ACADEMIA", fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Text("Aprende, practica, presenta exámenes y obtén certificados internos.", color = Muted, fontSize = 12.sp)
+        OutlinedTextField(value = studentName, onValueChange = { studentName = it; prefs.edit().putString("student_name", it).apply() }, modifier = Modifier.fillMaxWidth(), singleLine = true, label = { Text("Nombre para tus certificados") }, placeholder = { Text("Escribe tu nombre") })
         OutlinedButton(onClick = onOpenLibrary, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.School, contentDescription = null)
             Text("  Abrir biblioteca musical para practicar")
@@ -232,7 +251,11 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
                                             Text("Aprobado con ${scores[index]}%. CHAT DJ'S VIP • Escuela DJ", color = Color.White, fontSize = 11.sp)
                                         }
                                         TextButton(onClick = {
-                                            val certificate = "CERTIFICADO INTERNO DE FINALIZACIÓN\nEscuela DJ • CHAT DJ'S VIP\nNivel: ${level.name}\nCalificación: ${scores[index]}%\nEmitido por la academia integrada en CHAT DJ'S VIP. No es una acreditación oficial."
+                                            pendingCertificate = level.name to scores[index]
+                                            certificateLauncher.launch("Certificado-Escuela-DJ-${level.name}.pdf")
+                                        }) { Text("Guardar PDF") }
+                                        TextButton(onClick = {
+                                            val certificate = "CERTIFICADO INTERNO DE FINALIZACIÓN\\nAlumno: ${studentName.ifBlank { "Alumno DJ" }}\\nEscuela DJ • CHAT DJ'S VIP\\nNivel: ${level.name}\\nCalificación: ${scores[index]}%\\nEmitido por la academia integrada en CHAT DJ'S VIP. No es una acreditación oficial."
                                             val send = Intent(Intent.ACTION_SEND).apply {
                                                 type = "text/plain"
                                                 putExtra(Intent.EXTRA_SUBJECT, "Certificado Escuela DJ")
@@ -439,4 +462,39 @@ Responde paso a paso y propone una práctica verificable. No inventes botones, c
             containerColor = Panel
         )
     }
+}
+
+
+private fun writeAcademyCertificate(context: Context, uri: android.net.Uri, studentName: String, level: String, score: Int) {
+    val document = PdfDocument()
+    try {
+        val page = document.startPage(PdfDocument.PageInfo.Builder(595, 842, 1).create())
+        val canvas = page.canvas
+        canvas.drawColor(android.graphics.Color.rgb(16, 24, 32))
+        val accent = android.graphics.Color.rgb(22, 199, 154)
+        val white = android.graphics.Color.WHITE
+        val muted = android.graphics.Color.rgb(190, 205, 215)
+        val border = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = accent; style = Paint.Style.STROKE; strokeWidth = 5f }
+        canvas.drawRoundRect(28f, 28f, 567f, 814f, 22f, 22f, border)
+        fun draw(text: String, y: Float, size: Float, color: Int, bold: Boolean = false) {
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = color; textSize = size; textAlign = Paint.Align.CENTER
+                typeface = if (bold) Typeface.create("sans-serif", Typeface.BOLD) else Typeface.create("sans-serif", Typeface.NORMAL)
+            }
+            canvas.drawText(text, 297.5f, y, paint)
+        }
+        draw("CHAT DJ'S VIP", 150f, 26f, accent, true)
+        draw("ESCUELA DJ", 215f, 38f, white, true)
+        draw("CERTIFICADO INTERNO DE FINALIZACIÓN", 270f, 18f, muted, true)
+        draw("Se reconoce que", 345f, 18f, muted)
+        draw(studentName.take(42), 405f, 30f, white, true)
+        draw("ha completado satisfactoriamente el nivel", 460f, 18f, muted)
+        draw(level.uppercase(Locale("es", "MX")), 515f, 30f, accent, true)
+        draw("Calificación final: $score%", 575f, 22f, white, true)
+        draw("Fecha de emisión: " + SimpleDateFormat("dd/MM/yyyy", Locale("es", "MX")).format(Date()), 635f, 16f, muted)
+        draw("CHAT DJ'S VIP • Formación y práctica para DJs", 710f, 15f, white)
+        draw("Documento interno; no constituye acreditación oficial.", 750f, 12f, muted)
+        document.finishPage(page)
+        context.contentResolver.openOutputStream(uri)?.use { document.writeTo(it) } ?: error("No se pudo abrir el destino del PDF")
+    } finally { document.close() }
 }
