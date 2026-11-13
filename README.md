@@ -33,3 +33,4 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - El workflow Android APK ejecuta pruebas unitarias, Android Lint y compila app-debug.apk.
 - La aplicación no declara permiso INTERNET; el modelo se obtiene fuera de la app y luego se importa localmente.
 - El Estudio de Aplicaciones realiza análisis estático local. La compilación y publicación remota de proyectos importados no están implementadas.
+- Compilación 3.7.0: ejecución de CI para verificar APK y pruebas Android.
