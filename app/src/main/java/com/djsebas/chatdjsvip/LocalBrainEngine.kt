@@ -267,7 +267,7 @@ object LocalBrainEngine {
             ?.removePrefix("Tú:")?.trim().orEmpty()
         val facts = memory.lines().filter { it.isNotBlank() }.takeLast(5).joinToString("; ")
         return "Todavía no tengo un modelo generativo universal instalado para responder esa pregunta.\n" +
-            "Importa el archivo Qwen3-0.6B .litertlm desde el botón «Importar modelo» para activar respuestas generales sin conexión.\n" +
+            "Importa el modelo LFM2.5-350M INT4 .litertlm desde el botón «Importar modelo» para activar respuestas generales sin conexión.\n" +
             (if (previousTopic.isNotBlank() && normalize(previousTopic) != normalize(q)) "Tema reciente: " + previousTopic + "\n" else "") +
             (if (facts.isNotBlank()) "Datos que guardaste: " + facts + "\n" else "") +
             "Para evitar inventar, comparte un poco más de contexto o el texto que quieres que analice."
