@@ -54,6 +54,8 @@ fun ChatDjsVipApp() {
     val preferences = remember(context) { context.getSharedPreferences("chat_djs_vip", android.content.Context.MODE_PRIVATE) }
     var section by remember { mutableStateOf("Chat") }
     var showClearChat by remember { mutableStateOf(false) }
+    var showConversationHistory by remember { mutableStateOf(false) }
+    var conversationArchive by remember { mutableStateOf(preferences.getString("conversation_archive_v1", "[]").orEmpty()) }
     var prompt by remember { mutableStateOf("") }
     var messages by remember {
         val stored = preferences.getString("messages", null)
@@ -83,7 +85,16 @@ fun ChatDjsVipApp() {
             }, navigationIcon = {
                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Accent, modifier = Modifier.padding(start = 16.dp).size(28.dp))
             }, actions = {
-                if (section == "Chat") IconButton(onClick = { showClearChat = true }) { Icon(Icons.Default.DeleteOutline, contentDescription = "Limpiar conversación", tint = Accent) }
+                if (section == "Chat") {
+                    IconButton(onClick = { showConversationHistory = true }) { Icon(Icons.Default.History, contentDescription = "Conversaciones anteriores", tint = Accent) }
+                    IconButton(onClick = {
+                        conversationArchive = archiveConversation(conversationArchive, messages, System.currentTimeMillis())
+                        preferences.edit().putString("conversation_archive_v1", conversationArchive).apply()
+                        messages = listOf("¡Hola! Soy CHAT DJ'S VIP. ¿Qué hacemos hoy?")
+                        prompt = ""
+                    }) { Icon(Icons.Default.AddComment, contentDescription = "Nueva conversación", tint = Accent) }
+                    IconButton(onClick = { showClearChat = true }) { Icon(Icons.Default.DeleteOutline, contentDescription = "Limpiar conversación", tint = Accent) }
+                }
             }, colors = TopAppBarDefaults.topAppBarColors(containerColor = Panel))
         }, bottomBar = {
             NavigationBar(containerColor = Panel) {
@@ -132,6 +143,41 @@ fun ChatDjsVipApp() {
                 "Biblioteca" -> LibraryScreen(Modifier.padding(padding))
                 else -> AppStudioScreen(Modifier.padding(padding))
             }
+        }
+        if (showConversationHistory) {
+            val savedConversations = parseConversationArchive(conversationArchive)
+            AlertDialog(
+                onDismissRequest = { showConversationHistory = false },
+                title = { Text("Conversaciones anteriores") },
+                text = {
+                    if (savedConversations.isEmpty()) {
+                        Text("Todavía no hay conversaciones archivadas. Al iniciar un chat nuevo, el anterior se guardará aquí.")
+                    } else {
+                        LazyColumn(modifier = Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(savedConversations, key = { it.id }) { saved ->
+                                Surface(color = Panel, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                                    Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Column(Modifier.weight(1f).clickable {
+                                            messages = saved.messages
+                                            showConversationHistory = false
+                                            section = "Chat"
+                                        }.padding(4.dp)) {
+                                            Text(saved.title, fontWeight = FontWeight.SemiBold, maxLines = 2)
+                                            Text("${saved.messages.count { it.startsWith("Tú:") }} mensajes tuyos · ${saved.messages.size} elementos", color = Muted, fontSize = 11.sp)
+                                        }
+                                        IconButton(onClick = {
+                                            conversationArchive = removeArchivedConversation(conversationArchive, saved.id)
+                                            preferences.edit().putString("conversation_archive_v1", conversationArchive).apply()
+                                        }) { Icon(Icons.Default.DeleteOutline, contentDescription = "Eliminar conversación", tint = Muted) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showConversationHistory = false }) { Text("Cerrar") } },
+                containerColor = Panel
+            )
         }
         if (showClearChat) {
             AlertDialog(
