@@ -18,7 +18,7 @@ private const val LOCAL_MEMORY_PREFS = "chat_djs_vip_local_brain"
 private const val LOCAL_MEMORY_KEY = "facts"
 
 internal fun parseLocalMemoryFacts(raw: String?): List<String> =
-    raw.orEmpty().lineSequence().map(String::trim).filter(String::isNotBlank).distinct().takeLast(40)
+    raw.orEmpty().lineSequence().map(String::trim).filter(String::isNotBlank).distinct().toList().takeLast(40)
 
 internal fun addLocalMemoryFact(raw: String?, fact: String): String {
     val clean = fact.trim()
