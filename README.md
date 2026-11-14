@@ -4,7 +4,7 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 
 ## Cerebro universal local
 - Integra LiteRT-LM para ejecutar un modelo generativo directamente en el teléfono.
-- No usa Gemini, OpenAI, claves API, servidores de inferencia ni permiso INTERNET.
+- El modelo generativo local no usa Gemini, OpenAI, claves API ni servidores de inferencia. La búsqueda web opcional usa Wikipedia en HTTPS y solo se activa cuando el usuario la solicita.
 - El modelo se obtiene una sola vez desde el navegador y se importa desde Archivos; queda guardado en el almacenamiento privado de la app y funciona sin conexión. Al volver a abrir la app, se recupera la ruta guardada y el motor vuelve a cargar el modelo automáticamente al enviar el primer mensaje; si el backend anterior falla, intenta el alternativo CPU/GPU.
 - Modelo recomendado para esta compilación: LFM2.5 350M INT4, archivo `LFM2.5-350M_int4.litertlm` (aprox. 248 MB), publicado públicamente por LiteRT Community; no requiere aceptar condiciones de acceso de Gemma ni iniciar sesión para autorizar el modelo.
 - El paquete INT4 actual usa pesos externos y requiere LiteRT-LM 0.19.0 o posterior; esta app integra 0.19.1. Para máxima estabilidad en teléfonos modestos, la app inicializa el modelo con CPU. El Moto G24 aún debe validarse en ejecución real.
@@ -12,7 +12,7 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - Licencia: LFM Open License v1.0. Revisar sus condiciones antes de distribuir comercialmente. El modelo es ligero y admite español, pero su ficha recomienda tareas generales, extracción y uso de herramientas; no ofrece la misma profundidad de conocimiento o programación que un modelo grande.
 - El chat conserva contexto reciente y usa instrucciones de asistente general en español, además de memoria local.
 - El modelo inicial es solo texto; análisis directo de imágenes y audio con IA local queda pendiente de un modelo multimodal compatible.
-- No consulta noticias, clima, precios ni resultados actuales porque el chat no tiene conexión de red.
+- Incluye búsqueda web opcional en Wikipedia para ampliar respuestas con referencias actuales disponibles allí; no sustituye una búsqueda exhaustiva ni garantiza cobertura de noticias, clima o precios.
 
 ### Instalar el modelo
 1. En el chat, pulsa Obtener modelo y descarga el archivo .litertlm.
@@ -28,9 +28,9 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - Las funciones de audio trabajan con archivos del dispositivo; la generación de música por IA no forma parte de esta versión.
 
 ## Construcción
-- Versión: 3.8.3.
+- Versión: 3.8.4.
 - applicationId: com.djsebas.chatdjsvip.v320 (se conserva para actualizar la instalación existente).
-- versionCode: 55.
+- versionCode: 56.
 - El workflow Android APK ejecuta pruebas unitarias, Android Lint y compila app-debug.apk.
 - La aplicación no declara permiso INTERNET; el modelo se obtiene fuera de la app y luego se importa localmente.
 - El Estudio de Aplicaciones realiza análisis estático local y añade automáticamente un workflow GitHub Actions a los ZIP de proyectos Android Gradle completos que no tengan uno. Al subir el proyecto a GitHub, el workflow ejecuta pruebas, lint y assembleDebug, y publica el APK como artefacto de la ejecución; la compilación no se simula dentro del teléfono.
