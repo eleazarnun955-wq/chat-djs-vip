@@ -11,7 +11,6 @@ import com.tom_roush.pdfbox.text.PDFTextStripper
 import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
 import java.util.concurrent.Executors
-import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
 /** Extrae texto localmente de documentos seleccionados explícitamente por la persona. */
@@ -112,8 +111,6 @@ internal fun extractOfficeOpenXmlText(entries: Map<String, ByteArray>, extension
             runCatching { setFeature("http://apache.org/xml/features/disallow-doctype-decl", true) }
             runCatching { setFeature("http://xml.org/sax/features/external-general-entities", false) }
             runCatching { setFeature("http://xml.org/sax/features/external-parameter-entities", false) }
-            runCatching { setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "") }
-            runCatching { setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "") }
         }
         return factory.newDocumentBuilder().parse(ByteArrayInputStream(bytes))
     }
