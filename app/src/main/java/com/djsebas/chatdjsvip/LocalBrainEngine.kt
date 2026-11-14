@@ -31,7 +31,12 @@ object LocalBrainEngine {
                 val effectiveQuestion = resolveFollowUp(question, previousMessages)
                 val memory = prefs.getString(MEMORY_KEY, "").orEmpty()
                 if (imageUri != null) {
-                    "El cerebro local no envía imágenes a servidores. Esta versión todavía no incluye un modelo visual offline, por lo que no puedo describir el contenido de la imagen con fiabilidad. Puedes describirla y analizaré esa descripción."
+                    val mimeType = appContext.contentResolver.getType(imageUri).orEmpty()
+                    if (mimeType.startsWith("video/")) {
+                        "Recibí el vídeo adjunto correctamente. El cerebro local no lo envía a servidores, pero esta versión aún no incluye un modelo visual offline para analizar sus escenas. Puedes contarme qué ocurre en el vídeo o compartir una captura y te ayudaré con ella."
+                    } else {
+                        "Recibí la foto adjunta correctamente. El cerebro local no la envía a servidores, pero esta versión aún no incluye un modelo visual offline para describir su contenido. Si me cuentas qué aparece, puedo ayudarte a analizarlo."
+                    }
                 } else {
                     answerLocally(effectiveQuestion, previousMessages, memory) { updated ->
                         prefs.edit().putString(MEMORY_KEY, updated).apply()
