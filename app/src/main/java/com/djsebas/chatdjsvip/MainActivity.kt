@@ -7,7 +7,6 @@ import android.speech.tts.TextToSpeech
 import android.net.Uri
 import android.media.MediaPlayer
 import android.media.PlaybackParams
-import android.media.MediaPlayer
 import android.widget.VideoView
 import java.util.Locale
 import kotlinx.coroutines.delay
