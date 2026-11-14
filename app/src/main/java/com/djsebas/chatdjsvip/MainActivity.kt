@@ -181,21 +181,13 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
     }
     val textFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            val imported = runCatching {
-                val mime = context.contentResolver.getType(uri).orEmpty()
-                require(mime.startsWith("text/") || mime in setOf("application/json", "application/xml", "text/xml")) {
-                    "Por seguridad, adjunta archivos de texto, código, JSON o XML; los PDF y binarios aún no se extraen."
+            ChatAttachmentExtractor.extract(context, uri) { imported ->
+                imported.onSuccess { content ->
+                    onPrompt((prompt + "\n\nContenido del documento adjunto:\n" + content).trim())
+                    android.widget.Toast.makeText(context, "Documento leído y agregado al mensaje.", android.widget.Toast.LENGTH_LONG).show()
+                }.onFailure { error ->
+                    android.widget.Toast.makeText(context, error.message ?: "No se pudo leer el documento.", android.widget.Toast.LENGTH_LONG).show()
                 }
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: error("No se pudo leer el archivo.")
-                require(bytes.isNotEmpty()) { "El archivo está vacío." }
-                String(bytes.take(120_000).toByteArray(), Charsets.UTF_8)
-            }
-            imported.onSuccess { content ->
-                onPrompt((prompt + "\n\nContenido del archivo adjunto:\n" + content).trim())
-                android.widget.Toast.makeText(context, "Texto agregado al mensaje (máximo 120 KB).", android.widget.Toast.LENGTH_LONG).show()
-            }.onFailure { error ->
-                android.widget.Toast.makeText(context, error.message ?: "No se pudo adjuntar el archivo.", android.widget.Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -341,8 +333,8 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                 focusedTextColor = Color.White, unfocusedTextColor = Color.White
             ))
-            IconButton(onClick = { textFilePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }) {
-                Icon(Icons.Default.AttachFile, "Adjuntar texto o código", tint = Accent)
+            IconButton(onClick = { textFilePicker.launch(arrayOf("text/*", "application/json", "application/xml", "application/pdf")) }) {
+                Icon(Icons.Default.AttachFile, "Adjuntar texto, código o PDF", tint = Accent)
             }
             IconButton(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
                 Icon(Icons.Default.Image, "Adjuntar imagen", tint = Accent)
