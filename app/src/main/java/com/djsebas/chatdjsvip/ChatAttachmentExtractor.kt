@@ -115,8 +115,15 @@ internal fun extractOfficeOpenXmlText(entries: Map<String, ByteArray>, extension
         return factory.newDocumentBuilder().parse(ByteArrayInputStream(bytes))
     }
     fun textNodes(document: org.w3c.dom.Document): List<String> {
-        val nodes = document.getElementsByTagNameNS("*", "t")
-        return (0 until nodes.length).mapNotNull { nodes.item(it)?.textContent?.takeIf(String::isNotBlank) }
+        // Algunos parsers JVM no resuelven de forma uniforme el comodín de namespace
+        // usado por OOXML. Recorrer elementos por localName funciona para w:t, a:t y x:t.
+        val nodes = document.getElementsByTagName("*")
+        return (0 until nodes.length).mapNotNull { index ->
+            val node = nodes.item(index)
+            val element = node as? org.w3c.dom.Element ?: return@mapNotNull null
+            val local = element.localName ?: element.nodeName.substringAfter(':')
+            if (local == "t") element.textContent?.takeIf(String::isNotBlank) else null
+        }
     }
     return when (extension.lowercase()) {
         "docx" -> textNodes(xml("word/document.xml") ?: error("El DOCX no contiene el documento principal.")).joinToString(" ")
