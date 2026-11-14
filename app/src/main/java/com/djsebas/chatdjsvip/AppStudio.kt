@@ -200,7 +200,7 @@ fun AppStudioScreen(modifier: Modifier = Modifier) {
             Text("ESTUDIO DE APLICACIONES", fontSize = 21.sp, fontWeight = FontWeight.Bold)
         }
         Text(
-            "Diseña aplicaciones Android y web, genera código organizado y continúa trabajando sobre el mismo proyecto. Puedes guardar la propuesta como documento o empaquetar los bloques de código en un ZIP.",
+            "Diseña aplicaciones Android y web, genera código organizado y continúa trabajando sobre el mismo proyecto. Al exportar un proyecto Android Gradle completo, el ZIP incorpora un workflow de GitHub Actions para ejecutar pruebas, lint y compilar un APK descargable.",
             color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp
         )
         Text("Proyecto actual", fontWeight = FontWeight.SemiBold)
@@ -579,7 +579,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 Text("Exportar archivos del proyecto en ZIP")
             }
             Text(
-                "El ZIP contiene los bloques de código detectados y el documento completo. La compilación y ejecución de proyectos generados aún no están conectadas; esta pantalla prepara y organiza el trabajo, sin simular una compilación.",
+                "En proyectos Android Gradle completos, el ZIP también incluye .github/workflows/android-build.yml. Súbelo a un repositorio de GitHub y Actions ejecutará pruebas, lint y compilación; el APK aparecerá como artefacto de esa ejecución. La exportación prepara el proceso, pero no afirma que el APK ya esté compilado.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp
             )
         }
