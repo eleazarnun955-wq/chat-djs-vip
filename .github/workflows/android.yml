@@ -55,7 +55,7 @@ jobs:
           "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/apk-badging.txt
           grep -q "package: name='com.djsebas.chatdjsvip.v320'" /tmp/apk-badging.txt
-          grep -q "versionCode='54' versionName='3.8.2'" /tmp/apk-badging.txt
+          grep -q "versionCode='55' versionName='3.8.3'" /tmp/apk-badging.txt
           grep -q "sdkVersion:'26'" /tmp/apk-badging.txt
           echo "APK validada: firma, alineación, applicationId, versionCode, versionName y minSdk correctos."
       - name: Upload APK artifact
