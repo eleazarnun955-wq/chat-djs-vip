@@ -7,6 +7,8 @@ import android.speech.tts.TextToSpeech
 import android.net.Uri
 import android.media.MediaPlayer
 import android.media.PlaybackParams
+import android.media.MediaPlayer
+import android.widget.VideoView
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 
 val Ink = Color(0xFF101820)
 val Panel = Color(0xFF18232D)
@@ -211,6 +214,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
     val context = LocalContext.current
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var selectedMediaIsVideo by remember { mutableStateOf(false) }
+    var selectedMediaMime by remember { mutableStateOf<String?>(null) }
     var modelInstalled by remember { mutableStateOf(OnDeviceLlmEngine.hasInstalledModel(context)) }
     var importingModel by remember { mutableStateOf(false) }
     var importError by remember { mutableStateOf<String?>(null) }
@@ -236,7 +240,16 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             selectedImage = uri
-            selectedMediaIsVideo = context.contentResolver.getType(uri)?.startsWith("video/") == true
+            selectedMediaMime = context.contentResolver.getType(uri)
+            selectedMediaIsVideo = selectedMediaMime?.startsWith("video/") == true
+        }
+    }
+    val audioPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            selectedImage = uri
+            selectedMediaMime = context.contentResolver.getType(uri) ?: "audio/*"
+            selectedMediaIsVideo = false
         }
     }
     val textFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -387,11 +400,15 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                     .background(Panel, RoundedCornerShape(14.dp)).padding(10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(if (selectedMediaIsVideo) Icons.Default.Videocam else Icons.Default.Image, null, tint = Accent)
-                    Text(if (selectedMediaIsVideo) "Vídeo adjunto" else "Vista previa de la foto", color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
-                    TextButton(onClick = { selectedImage = null; selectedMediaIsVideo = false }) { Text("Quitar") }
+                    Icon(when { selectedMediaIsVideo -> Icons.Default.Videocam; selectedMediaMime?.startsWith("audio/") == true -> Icons.Default.MusicNote; else -> Icons.Default.Image }, null, tint = Accent)
+                    Text(when { selectedMediaIsVideo -> "Vídeo listo para enviar"; selectedMediaMime?.startsWith("audio/") == true -> "Canción / audio listo para enviar"; else -> "Vista previa de la foto" }, color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                    TextButton(onClick = { selectedImage = null; selectedMediaIsVideo = false; selectedMediaMime = null }) { Text("Quitar") }
                 }
-                if (!selectedMediaIsVideo) ChatImagePreview(selectedImage!!, Modifier.fillMaxWidth().heightIn(max = 190.dp))
+                when {
+                    selectedMediaIsVideo -> ChatVideoPreview(selectedImage!!, Modifier.fillMaxWidth().height(190.dp))
+                    selectedMediaMime?.startsWith("audio/") == true -> ChatAudioPlayer(selectedImage!!)
+                    else -> ChatImagePreview(selectedImage!!, Modifier.fillMaxWidth().heightIn(max = 190.dp))
+                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().background(Panel, CircleShape).padding(6.dp)) {
@@ -404,6 +421,9 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             }
             IconButton(onClick = { imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }) {
                 Icon(Icons.Default.Image, "Adjuntar foto o vídeo", tint = Accent)
+            }
+            IconButton(onClick = { audioPicker.launch(arrayOf("audio/*")) }) {
+                Icon(Icons.Default.LibraryMusic, "Adjuntar canción o audio", tint = Accent)
             }
             IconButton(onClick = { permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) }) {
                 Icon(Icons.Default.Mic, "Hablar", tint = Accent)
@@ -436,28 +456,68 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
 
 @Composable
 private fun ChatMessageContent(message: String, modifier: Modifier = Modifier) {
-    val imageUriText = remember(message) {
-        Regex("\\[\\[CHAT_IMAGE_URI=(.*?)\\]\\]").find(message)?.groupValues?.getOrNull(1)
+    val media = remember(message) {
+        Regex("\\[\\[CHAT_MEDIA_URI=(.*?)\\|(.*?)\\]\\]").find(message)?.let { it.groupValues[1] to it.groupValues[2] }
+            ?: Regex("\\[\\[CHAT_IMAGE_URI=(.*?)\\]\\]").find(message)?.let { it.groupValues[1] to "image/*" }
     }
-    val visibleText = remember(message) {
-        message.replace(Regex("\\n?\\[\\[CHAT_IMAGE_URI=.*?\\]\\]"), "").trim()
-    }
+    val visibleText = remember(message) { message.replace(Regex("\\n?\\[\\[CHAT_(?:MEDIA_URI|IMAGE_URI)=.*?\\]\\]"), "").trim() }
     Column(modifier) {
         if (visibleText.isNotBlank()) Text(visibleText, color = Color.White, fontSize = 15.sp)
-        if (!imageUriText.isNullOrBlank()) {
-            val uri = remember(imageUriText) { Uri.parse(imageUriText) }
-            val context = LocalContext.current
-            val isVideo = remember(uri) { context.contentResolver.getType(uri)?.startsWith("video/") == true }
-            if (isVideo) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                    Icon(Icons.Default.PlayCircle, null, tint = Accent)
-                    Text("Vídeo adjunto", color = Muted, modifier = Modifier.padding(start = 6.dp))
-                }
-            } else {
-                ChatImagePreview(uri, Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(max = 300.dp))
+        media?.let { pair ->
+            val uri = remember(pair.first) { Uri.parse(pair.first) }
+            when {
+                pair.second.startsWith("video/") -> ChatVideoPreview(uri, Modifier.fillMaxWidth().padding(top = 8.dp).height(190.dp))
+                pair.second.startsWith("audio/") -> ChatAudioPlayer(uri)
+                else -> ChatImagePreview(uri, Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(max = 300.dp))
             }
         }
     }
+}
+
+@Composable
+private fun ChatVideoPreview(uri: Uri, modifier: Modifier = Modifier) {
+    AndroidView(modifier = modifier, factory = { context -> VideoView(context).apply { setVideoURI(uri) } },
+        update = { view -> if (view.tag != uri.toString()) { view.tag = uri.toString(); view.setVideoURI(uri) } })
+}
+
+@Composable
+private fun ChatAudioPlayer(uri: Uri) {
+    val context = LocalContext.current
+    var player by remember(uri) { mutableStateOf<MediaPlayer?>(null) }
+    var ready by remember(uri) { mutableStateOf(false) }
+    var playing by remember(uri) { mutableStateOf(false) }
+    var duration by remember(uri) { mutableIntStateOf(0) }
+    var position by remember(uri) { mutableIntStateOf(0) }
+    DisposableEffect(uri) {
+        val mp = MediaPlayer()
+        player = mp
+        runCatching {
+            mp.setDataSource(context, uri)
+            mp.setOnPreparedListener { duration = it.duration; ready = true }
+            mp.setOnCompletionListener { playing = false; position = 0 }
+            mp.prepareAsync()
+        }.onFailure { ready = false }
+        onDispose { runCatching { mp.stop() }; mp.release(); player = null }
+    }
+    LaunchedEffect(playing, ready) {
+        while (playing && ready) { position = player?.currentPosition ?: position; delay(500) }
+    }
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp).background(Panel, RoundedCornerShape(12.dp)).padding(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.MusicNote, null, tint = Accent)
+            Text("Audio / canción", color = Color.White, modifier = Modifier.weight(1f).padding(start = 8.dp))
+            IconButton(enabled = ready, onClick = {
+                player?.let { if (it.isPlaying) { it.pause(); playing = false } else { it.start(); playing = true } }
+            }) { Icon(if (playing) Icons.Default.Pause else Icons.Default.PlayArrow, "Reproducir o pausar", tint = Accent) }
+        }
+        Slider(value = position.toFloat().coerceIn(0f, duration.coerceAtLeast(1).toFloat()), onValueChange = { position = it.toInt() }, onValueChangeFinished = { player?.seekTo(position) }, valueRange = 0f..duration.coerceAtLeast(1).toFloat(), enabled = ready)
+        Text(formatMediaTime(position) + " / " + formatMediaTime(duration), color = Muted, fontSize = 12.sp)
+    }
+}
+
+private fun formatMediaTime(ms: Int): String {
+    val total = (ms / 1000).coerceAtLeast(0)
+    return "%d:%02d".format(total / 60, total % 60)
 }
 
 @Composable
