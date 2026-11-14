@@ -115,15 +115,19 @@ internal fun extractOfficeOpenXmlText(entries: Map<String, ByteArray>, extension
         return factory.newDocumentBuilder().parse(ByteArrayInputStream(bytes))
     }
     fun textNodes(document: org.w3c.dom.Document): List<String> {
-        // Algunos parsers JVM no resuelven de forma uniforme el comodín de namespace
-        // usado por OOXML. Recorrer elementos por localName funciona para w:t, a:t y x:t.
-        val nodes = document.getElementsByTagName("*")
-        return (0 until nodes.length).mapNotNull { index ->
-            val node = nodes.item(index)
-            val element = node as? org.w3c.dom.Element ?: return@mapNotNull null
-            val local = element.localName ?: element.nodeName.substringAfter(':')
-            if (local == "t") element.textContent?.takeIf(String::isNotBlank) else null
+        // Recorrido recursivo: evita depender de NodeList con comodines, que varía
+        // entre implementaciones XML usadas por las pruebas JVM y Android.
+        val result = mutableListOf<String>()
+        fun visit(node: org.w3c.dom.Node) {
+            if (node.nodeType == org.w3c.dom.Node.ELEMENT_NODE) {
+                val local = node.localName ?: node.nodeName.substringAfterLast(':')
+                if (local == "t") node.textContent?.takeIf(String::isNotBlank)?.let(result::add)
+            }
+            val children = node.childNodes
+            for (index in 0 until children.length) visit(children.item(index))
         }
+        visit(document.documentElement)
+        return result
     }
     return when (extension.lowercase()) {
         "docx" -> textNodes(xml("word/document.xml") ?: error("El DOCX no contiene el documento principal.")).joinToString(" ")
