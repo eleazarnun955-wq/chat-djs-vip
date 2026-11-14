@@ -32,7 +32,9 @@ class ChatAttachmentExtractorTest {
             "ppt/slides/slide2.xml" to slide2.toByteArray(UTF_8),
             "ppt/slides/slide1.xml" to slide1.toByteArray(UTF_8)
         ), "pptx")
-        assertTrue(result.indexOf("Primero") < result.indexOf("Segundo"))
+        assertTrue("Debe extraer el texto de la primera diapositiva: $result", result.contains("Primero"))
+        assertTrue("Debe extraer el texto de la segunda diapositiva: $result", result.contains("Segundo"))
+        assertTrue("Las diapositivas deben ordenarse numéricamente: $result", result.indexOf("Primero") < result.indexOf("Segundo"))
     }
 
     @Test
