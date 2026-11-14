@@ -27,7 +27,7 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - DJ SEBAS PRODUCCIONES integrado: herramientas de audio, edición y exportación MP3 local.
 - Las funciones de audio trabajan con archivos del dispositivo; la generación de música por IA no forma parte de esta versión.
 
-- Chat: adjunta archivos de texto, código, JSON, XML y PDF; los PDF se extraen localmente (primeras 25 páginas) y el contenido se limita para evitar mensajes excesivos. Los documentos no se envían a servidores.\n\n## Construcción
+- Chat: adjunta archivos TXT, CSV, código, JSON, XML, PDF, DOCX, XLSX y PPTX. La extracción de PDF se limita a las primeras 25 páginas; los documentos Office Open XML se procesan localmente con límites de tamaño y el contenido se limita a 120.000 caracteres. Los documentos no se envían a servidores.\n\n## Construcción
 - Versión: 3.8.6.
 - applicationId: com.djsebas.chatdjsvip.v320 (se conserva para actualizar la instalación existente).
 - versionCode: 58.
