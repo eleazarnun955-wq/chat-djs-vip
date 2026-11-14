@@ -284,7 +284,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://huggingface.co/litert-community/LFM2.5-350M/resolve/main/LFM2.5-350M_int4.litertlm")))
                     }
                 }) { Text("Obtener modelo") }
-                TextButton(
+                IconButton(
                     onClick = {
                         val query = prompt.ifBlank {
                             messages.asReversed().firstOrNull { it.startsWith("Tú:") }?.removePrefix("Tú:")?.trim().orEmpty()
@@ -293,8 +293,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                         else android.widget.Toast.makeText(context, "Escribe una pregunta para buscar.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = Accent)
-                    Text("  Buscar en web")
+                    Icon(Icons.Default.Search, contentDescription = "Buscar en web", tint = Accent)
                 }
                 TextButton(
                     onClick = { exportChatLauncher.launch("Chat-DJs-VIP.txt") },
