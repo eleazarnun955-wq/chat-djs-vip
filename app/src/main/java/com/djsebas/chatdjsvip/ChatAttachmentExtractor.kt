@@ -42,7 +42,7 @@ object ChatAttachmentExtractor {
         PDFBoxResourceLoader.init(context)
         val input = context.contentResolver.openInputStream(uri)
             ?: error("No se pudo abrir el PDF.")
-        input.use { stream ->
+        return input.use { stream ->
             PDDocument.load(stream).use { document ->
                 require(!document.isEncrypted) { "El PDF está protegido o cifrado y no se puede leer." }
                 require(document.numberOfPages > 0) { "El PDF no contiene páginas." }
