@@ -28,10 +28,10 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - Las funciones de audio trabajan con archivos del dispositivo; la generación de música por IA no forma parte de esta versión.
 
 ## Construcción
-- Versión: 3.8.2.
+- Versión: 3.8.3.
 - applicationId: com.djsebas.chatdjsvip.v320 (se conserva para actualizar la instalación existente).
-- versionCode: 54.
+- versionCode: 55.
 - El workflow Android APK ejecuta pruebas unitarias, Android Lint y compila app-debug.apk.
 - La aplicación no declara permiso INTERNET; el modelo se obtiene fuera de la app y luego se importa localmente.
-- El Estudio de Aplicaciones realiza análisis estático local. La compilación y publicación remota de proyectos importados no están implementadas.
+- El Estudio de Aplicaciones realiza análisis estático local y añade automáticamente un workflow GitHub Actions a los ZIP de proyectos Android Gradle completos que no tengan uno. Al subir el proyecto a GitHub, el workflow ejecuta pruebas, lint y assembleDebug, y publica el APK como artefacto de la ejecución; la compilación no se simula dentro del teléfono.
 - Compilación 3.7.8: CI verifica pruebas unitarias, Android Lint, firma, alineación, applicationId, versionCode y versionName.
