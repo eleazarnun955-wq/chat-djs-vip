@@ -81,12 +81,20 @@ object ChatAttachmentExtractor {
                     if (!entry.isDirectory && (entry.name == "word/document.xml" ||
                         entry.name == "xl/sharedStrings.xml" || entry.name.startsWith("xl/worksheets/sheet") && entry.name.endsWith(".xml") ||
                         entry.name.startsWith("ppt/slides/slide") && entry.name.endsWith(".xml"))) {
-                        val bytes = zip.readBytes()
-                        total += bytes.size
-                        require(bytes.size <= MAX_ENTRY_BYTES && total <= MAX_ARCHIVE_BYTES) {
-                            "El documento contiene secciones demasiado grandes para procesarlas con seguridad."
+                        val output = java.io.ByteArrayOutputStream()
+                        val buffer = ByteArray(8192)
+                        var entrySize = 0
+                        while (true) {
+                            val count = zip.read(buffer)
+                            if (count < 0) break
+                            entrySize += count
+                            total += count
+                            require(entrySize <= MAX_ENTRY_BYTES && total <= MAX_ARCHIVE_BYTES) {
+                                "El documento contiene secciones demasiado grandes para procesarlas con seguridad."
+                            }
+                            output.write(buffer, 0, count)
                         }
-                        entries[entry.name] = bytes
+                        entries[entry.name] = output.toByteArray()
                     }
                     zip.closeEntry()
                 }
@@ -130,10 +138,13 @@ internal fun extractOfficeOpenXmlText(entries: Map<String, ByteArray>, extension
                 for (i in 0 until cells.length) {
                     val cell = cells.item(i) as? org.w3c.dom.Element ?: continue
                     val valueNode = cell.getElementsByTagNameNS("*", "v").item(0)
-                    val inline = textNodes(cell.ownerDocument).takeIf { cell.getAttribute("t") == "inlineStr" }
+                    val inline = cell.getElementsByTagNameNS("*", "is").item(0) as? org.w3c.dom.Element
+                    val inlineText = inline?.getElementsByTagNameNS("*", "t")
+                    val inlineValue = if (inlineText == null) "" else (0 until inlineText.length)
+                        .mapNotNull { inlineText.item(it)?.textContent }.joinToString("")
                     val value = when (cell.getAttribute("t")) {
                         "s" -> shared.getOrNull(valueNode?.textContent?.toIntOrNull() ?: -1).orEmpty()
-                        "inlineStr" -> inline?.joinToString(" ").orEmpty()
+                        "inlineStr" -> inlineValue
                         else -> valueNode?.textContent.orEmpty()
                     }
                     if (value.isNotBlank()) rows += "${cell.getAttribute("r")}: $value"
