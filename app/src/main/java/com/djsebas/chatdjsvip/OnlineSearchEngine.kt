@@ -19,7 +19,6 @@ object OnlineSearchEngine {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     fun search(context: Context, query: String, onResult: (String) -> Unit) {
-        val app = context.applicationContext
         executor.execute {
             val result = runCatching {
                 val url = URL(buildSearchUrl(query))
@@ -39,17 +38,17 @@ object OnlineSearchEngine {
                         "No encontré resultados en Wikipedia en español para «$query». Prueba con otras palabras."
                     } else {
                         buildString {
-                            append("Búsqueda: ").append(query).append("\\n")
+                            append("Búsqueda: ").append(query).append("\n")
                             for (i in 0 until minOf(items.length(), 5)) {
                                 val item = items.optJSONObject(i) ?: continue
                                 val title = item.optString("title", "Sin título")
                                 val snippet = Html.fromHtml(item.optString("snippet", ""), Html.FROM_HTML_MODE_LEGACY).toString()
                                 val pageId = item.optLong("pageid", 0L)
-                                append("\\n").append(i + 1).append(". ").append(title).append("\\n")
-                                append(snippet).append("\\n")
-                                if (pageId > 0) append("Fuente: https://es.wikipedia.org/?curid=").append(pageId).append("\\n")
+                                append("\n").append(i + 1).append(". ").append(title).append("\n")
+                                append(snippet).append("\n")
+                                if (pageId > 0) append("Fuente: https://es.wikipedia.org/?curid=").append(pageId).append("\n")
                             }
-                            append("\\nFuente: Wikipedia en español. Verifica datos importantes con fuentes adicionales.")
+                            append("\nFuente: Wikipedia en español. Verifica datos importantes con fuentes adicionales.")
                         }
                     }
                 } finally {
