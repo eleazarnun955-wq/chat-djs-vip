@@ -119,10 +119,20 @@ fun ChatDjsVipApp() {
             when (section) {
                 "Chat" -> ChatScreen(messages, prompt, { prompt = it }, { text, imageUri ->
                     if (text.isNotBlank() || imageUri != null) {
-                        val shownText = text.ifBlank { "Analiza esta imagen y explícame qué observas." }
-                        messages = messages + "Tú: $shownText${imageUri?.let { "\n[[CHAT_IMAGE_URI=$it]]" } ?: ""}" + "VIP: Consultando..."
+                        val mime = imageUri?.let { context.contentResolver.getType(it) }
+                        val shownText = text.ifBlank {
+                            when {
+                                mime?.startsWith("video/") == true -> "Reproduce y revisa este vídeo."
+                                mime?.startsWith("audio/") == true -> "Escucha esta canción o audio."
+                                imageUri != null -> "Analiza esta imagen y explícame qué observas."
+                                else -> ""
+                            }
+                        }
+                        val marker = imageUri?.let { "\\n[[CHAT_MEDIA_URI=$it|${mime ?: "application/octet-stream"}]]" } ?: ""
+                        messages = messages + "Tú: $shownText$marker" + "VIP: Consultando..."
                         prompt = ""
-                        OnDeviceLlmEngine.reply(context, shownText, messages, imageUri) { answer ->
+                        val visionUri = if (mime?.startsWith("image/") == true) imageUri else null
+                        OnDeviceLlmEngine.reply(context, shownText, messages, visionUri) { answer ->
                             (context as? android.app.Activity)?.runOnUiThread {
                                 messages = messages.dropLast(1) + "VIP: $answer"
                             }
@@ -476,7 +486,7 @@ private fun ChatMessageContent(message: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ChatVideoPreview(uri: Uri, modifier: Modifier = Modifier) {
-    AndroidView(modifier = modifier, factory = { context -> VideoView(context).apply { setVideoURI(uri) } },
+    AndroidView(modifier = modifier, factory = { context -> VideoView(context).apply { setVideoURI(uri); setMediaController(android.widget.MediaController(context).also { it.setAnchorView(this) }) } },
         update = { view -> if (view.tag != uri.toString()) { view.tag = uri.toString(); view.setVideoURI(uri) } })
 }
 
