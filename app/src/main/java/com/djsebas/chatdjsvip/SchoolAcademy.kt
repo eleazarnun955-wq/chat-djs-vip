@@ -39,6 +39,13 @@ private data class AcademyTopic(val name: String, val description: String)
 private data class AcademyLevel(val name: String, val subtitle: String, val topics: List<AcademyTopic>)
 private data class AcademyQuestion(val prompt: String, val options: List<String>, val answer: Int, val explanation: String)
 private data class AcademyResult(val student: String, val assessment: String, val score: Int, val date: String)
+private data class AcademyReportData(
+    val student: String,
+    val completed: Set<String>,
+    val examScores: List<Int>,
+    val practicalScores: Map<String, Int>,
+    val history: List<AcademyResult>
+)
 
 private fun loadAcademyHistory(prefs: android.content.SharedPreferences): List<AcademyResult> = runCatching {
     val raw = prefs.getString("academy_history", null) ?: return emptyList()
@@ -144,6 +151,15 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
         }
     }
     var history by remember { mutableStateOf(loadAcademyHistory(prefs)) }
+    var pendingReport by remember { mutableStateOf<AcademyReportData?>(null) }
+    val reportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        val report = pendingReport
+        pendingReport = null
+        if (uri != null && report != null) {
+            val saved = runCatching { writeAcademyProgressReport(context, uri, report) }.isSuccess
+            android.widget.Toast.makeText(context, if (saved) "Informe de progreso PDF guardado" else "No se pudo guardar el informe", android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     fun recordResult(student: String, assessment: String, score: Int) {
         val entry = AcademyResult(student.ifBlank { "Alumno DJ" }, assessment, score, SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("es", "MX")).format(Date()))
         history = (listOf(entry) + history).take(30)
@@ -181,6 +197,9 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
         "Alinea el fraseo, realiza la transición y verifica que el Master no distorsione."
     )
     val modelReady = remember(context) { OnDeviceLlmEngine.hasInstalledModel(context) }
+    val progressSummary = remember(completed, scores, practicalScores) {
+        summarizeAcademyProgress(completed, academyLevels.sumOf { it.topics.size }, scores, practicalScores)
+    }
 
     fun saveCompleted(updated: Set<String>) {
         completed = updated
@@ -211,9 +230,25 @@ fun SchoolAcademyScreen(modifier: Modifier = Modifier, onOpenLibrary: () -> Unit
         Text("Avance general: ${completed.size} / $total clases", color = Accent, fontWeight = FontWeight.SemiBold)
         LinearProgressIndicator(
             progress = { completed.size.coerceAtMost(total).toFloat() / total },
-            modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 8.dp),
             color = Accent, trackColor = Panel
         )
+        Surface(color = Panel, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(10.dp)) {
+                Text("RESUMEN DE RENDIMIENTO", color = Accent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Exámenes aprobados: ${progressSummary.passedExams}/3  •  Promedio: ${progressSummary.averageExamScore?.let { "${it}%" } ?: "—"}", color = Color.White, fontSize = 12.sp)
+                Text("Prácticas evaluadas: ${progressSummary.practicalCount}  •  Promedio: ${progressSummary.averagePracticalScore?.let { "${it}%" } ?: "—"}", color = Color.White, fontSize = 12.sp)
+                Text("Clases completadas: ${progressSummary.completionPercent}%", color = Muted, fontSize = 11.sp)
+                OutlinedButton(
+                    onClick = {
+                        pendingReport = AcademyReportData(studentName.ifBlank { "Alumno DJ" }, completed.toSet(), scores.toList(), practicalScores.toMap(), history.toList())
+                        reportLauncher.launch("Informe-Progreso-Escuela-DJ.pdf")
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Exportar informe completo en PDF") }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
         if (history.isNotEmpty()) {
             Surface(color = Panel, shape = RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(10.dp)) {
@@ -538,4 +573,61 @@ private fun writeAcademyCertificate(context: Context, uri: android.net.Uri, stud
         document.finishPage(page)
         context.contentResolver.openOutputStream(uri)?.use { document.writeTo(it) } ?: error("No se pudo abrir el destino del PDF")
     } finally { document.close() }
+}
+
+
+private fun writeAcademyProgressReport(context: Context, uri: android.net.Uri, report: AcademyReportData) {
+    val document = PdfDocument()
+    val titlePaint = Paint().apply { typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); textSize = 18f }
+    val headingPaint = Paint().apply { typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); textSize = 12f }
+    val bodyPaint = Paint().apply { textSize = 10f }
+    val lines = buildList {
+        add("Alumno: ${report.student}")
+        add("CHAT DJ'S VIP • Escuela DJ")
+        add("Clases completadas: ${report.completed.size}/${academyLevels.sumOf { it.topics.size }}")
+        add("Exámenes aprobados: ${report.examScores.count { it >= 70 }}/3")
+        add("")
+        add("RESULTADOS DE EXÁMENES")
+        academyLevels.forEachIndexed { index, level ->
+            val score = report.examScores.getOrNull(index) ?: -1
+            add("${level.name}: ${if (score >= 0) "$score%" else "Sin presentar"}")
+        }
+        add("")
+        add("EVALUACIONES PRÁCTICAS")
+        academyLevels.flatMap { it.topics }.forEach { topic ->
+            val score = report.practicalScores[topic.name] ?: -1
+            add("${topic.name}: ${if (score >= 0) "$score%" else "Sin evaluar"}")
+            add("  Estado de clase: ${if (topic.name in report.completed) "Completada" else "Pendiente"}")
+        }
+        add("")
+        add("HISTORIAL RECIENTE")
+        if (report.history.isEmpty()) add("Aún no hay evaluaciones registradas.")
+        report.history.take(30).forEach { add("${it.date} • ${it.assessment}: ${it.score}% (${it.student})") }
+        add("")
+        add("Documento informativo de progreso. No constituye una acreditación oficial.")
+    }
+    val wrapped = lines.flatMap { line -> if (line.length <= 88) listOf(line) else line.chunked(88) }
+    var pageNumber = 1
+    var page = document.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
+    var y = 54f
+    page.canvas.drawText("INFORME DE PROGRESO DJ", 40f, y, titlePaint)
+    y += 28f
+    wrapped.forEach { line ->
+        if (y > 800f) {
+            document.finishPage(page)
+            pageNumber++
+            page = document.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
+            y = 48f
+        }
+        val paint = if (line in setOf("RESULTADOS DE EXÁMENES", "EVALUACIONES PRÁCTICAS", "HISTORIAL RECIENTE")) headingPaint else bodyPaint
+        page.canvas.drawText(line.take(100), 40f, y, paint)
+        y += if (line.isBlank()) 10f else 16f
+    }
+    document.finishPage(page)
+    try {
+        context.contentResolver.openOutputStream(uri)?.use { document.writeTo(it) }
+            ?: error("No se pudo abrir el archivo de destino.")
+    } finally {
+        document.close()
+    }
 }
