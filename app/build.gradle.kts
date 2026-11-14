@@ -57,5 +57,6 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     // LFM2.5 files with external TFLiteWeights need the newer Android LiteRT-LM runtime.
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.1")\n    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.19.1")
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 }
