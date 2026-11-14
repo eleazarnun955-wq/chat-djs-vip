@@ -60,7 +60,7 @@ class LocalBrainEngineTest {
         assertEquals(LocalBrainIntent.UNKNOWN, LocalBrainEngine.classifyIntent(question))
         val answer = LocalBrainEngine.answerLocally(question, emptyList(), "")
         assertTrue(answer.contains("Todavía no tengo un modelo generativo universal instalado"))
-        assertTrue(answer.contains("Importa el archivo Qwen3-0.6B"))
+        assertTrue(answer.contains("Importa el modelo LFM2.5-350M INT4"))
     }
 
     @Test fun recognizesMoreAppDevelopmentRequests() {
