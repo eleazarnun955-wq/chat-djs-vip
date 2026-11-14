@@ -192,7 +192,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 String(bytes.take(120_000).toByteArray(), Charsets.UTF_8)
             }
             imported.onSuccess { content ->
-                onPrompt((prompt + "\\n\\nContenido del archivo adjunto:\\n" + content).trim())
+                onPrompt((prompt + "\n\nContenido del archivo adjunto:\n" + content).trim())
                 android.widget.Toast.makeText(context, "Texto agregado al mensaje (máximo 120 KB).", android.widget.Toast.LENGTH_LONG).show()
             }.onFailure { error ->
                 android.widget.Toast.makeText(context, error.message ?: "No se pudo adjuntar el archivo.", android.widget.Toast.LENGTH_LONG).show()
