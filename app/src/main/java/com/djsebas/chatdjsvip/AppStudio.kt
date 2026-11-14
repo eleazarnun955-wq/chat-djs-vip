@@ -428,6 +428,19 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 studioHistory.add("VIP: $answer")
                 while (studioHistory.size > 24) studioHistory.removeAt(0)
                 val updatedHistory = JSONArray(studioHistory.toList())
+                val currentSnapshot = importedFiles.map { file ->
+                    if (file.path == selectedFilePath) file.copy(content = editorContent) else file
+                }
+                val generatedFiles = GeneratedProjectFileParser.parse(answer)
+                val mergedByPath = linkedMapOf<String, ImportedProjectFile>()
+                currentSnapshot.forEach { mergedByPath[it.path.lowercase()] = it }
+                generatedFiles.forEach { mergedByPath[it.path.lowercase()] = it }
+                val mergedFiles = mergedByPath.values.take(100)
+                if (generatedFiles.isNotEmpty()) {
+                    importedFiles = mergedFiles
+                    selectedFilePath = generatedFiles.first().path
+                    editorContent = generatedFiles.first().content
+                }
                 val projectStore = runCatching {
                     org.json.JSONObject(preferences.getString("app_studio_project_data", "{}").orEmpty())
                 }.getOrElse { org.json.JSONObject() }
@@ -437,7 +450,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                     .put("target", target)
                     .put("history", updatedHistory)
                     .put("result", answer)
-                    .put("files", JSONArray().apply { importedFiles.forEach { put(org.json.JSONObject().put("path", it.path).put("content", it.content)) } }))
+                    .put("files", JSONArray().apply { mergedFiles.forEach { put(org.json.JSONObject().put("path", it.path).put("content", it.content)) } }))
                 if (!savedProjects.contains(cleanProjectName)) savedProjects.add(cleanProjectName)
                 preferences.edit()
                     .putString("app_studio_history", updatedHistory.toString())
@@ -449,7 +462,7 @@ Entrega una solución de desarrollo realista. Primero resume el alcance y la arq
                 projectName = cleanProjectName
                 result = answer
                 isGenerating = false
-                status = "Análisis local guardado automáticamente en «$cleanProjectName»."
+                status = if (generatedFiles.isNotEmpty()) "Se guardó «$cleanProjectName» y se agregaron ${generatedFiles.size} archivos editables al proyecto. Ya puedes revisarlos y exportar el ZIP." else "Análisis local guardado automáticamente en «$cleanProjectName»."
             }
         }, enabled = requirements.isNotBlank() && !isGenerating, modifier = Modifier.fillMaxWidth()) {
             if (isGenerating) {
