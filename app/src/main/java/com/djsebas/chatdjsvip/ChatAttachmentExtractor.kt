@@ -132,13 +132,13 @@ internal fun extractOfficeOpenXmlText(entries: Map<String, ByteArray>, extension
     return when (extension.lowercase()) {
         "docx" -> textNodes(xml("word/document.xml") ?: error("El DOCX no contiene el documento principal.")).joinToString(" ")
         "pptx" -> entries.keys.filter { it.matches(Regex("ppt/slides/slide[0-9]+\\.xml")) }
-            .sortedBy { it.substringAfter("slide").substringBefore(".").toIntOrNull() ?: Int.MAX_VALUE }
+            .sortedBy { it.substringAfterLast("slide").substringBefore(".").toIntOrNull() ?: Int.MAX_VALUE }
             .mapNotNull { xml(it) }.mapIndexed { index, doc -> "Diapositiva ${index + 1}: " + textNodes(doc).joinToString(" ") }
             .joinToString("\n")
         "xlsx" -> {
             val shared = xml("xl/sharedStrings.xml")?.let(::textNodes).orEmpty()
             val sheets = entries.keys.filter { it.matches(Regex("xl/worksheets/sheet[0-9]+\\.xml")) }
-                .sortedBy { it.substringAfter("sheet").substringBefore(".").toIntOrNull() ?: Int.MAX_VALUE }
+                .sortedBy { it.substringAfterLast("sheet").substringBefore(".").toIntOrNull() ?: Int.MAX_VALUE }
             sheets.mapIndexed { sheetIndex, path ->
                 val doc = xml(path) ?: return@mapIndexed ""
                 val cells = doc.getElementsByTagNameNS("*", "c")
