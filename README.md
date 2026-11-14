@@ -27,10 +27,10 @@ Aplicación Android con asistente universal local, Escuela DJ, Biblioteca musica
 - DJ SEBAS PRODUCCIONES integrado: herramientas de audio, edición y exportación MP3 local.
 - Las funciones de audio trabajan con archivos del dispositivo; la generación de música por IA no forma parte de esta versión.
 
-## Construcción
-- Versión: 3.8.4.
+- Chat: adjunta archivos de texto, código, JSON, XML y PDF; los PDF se extraen localmente (primeras 25 páginas) y el contenido se limita para evitar mensajes excesivos. Los documentos no se envían a servidores.\n\n## Construcción
+- Versión: 3.8.5.
 - applicationId: com.djsebas.chatdjsvip.v320 (se conserva para actualizar la instalación existente).
-- versionCode: 56.
+- versionCode: 57.
 - El workflow Android APK ejecuta pruebas unitarias, Android Lint y compila app-debug.apk.
 - La aplicación no declara permiso INTERNET; el modelo se obtiene fuera de la app y luego se importa localmente.
 - El Estudio de Aplicaciones realiza análisis estático local y añade automáticamente un workflow GitHub Actions a los ZIP de proyectos Android Gradle completos que no tengan uno. Al subir el proyecto a GitHub, el workflow ejecuta pruebas, lint y assembleDebug, y publica el APK como artefacto de la ejecución; la compilación no se simula dentro del teléfono.
