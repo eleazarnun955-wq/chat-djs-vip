@@ -35,7 +35,13 @@ jobs:
             echo "No se pudo detectar versionName en app/build.gradle.kts"
             exit 1
           fi
+          VERSION_CODE=$(awk '/versionCode[[:space:]]*=/ {gsub(/[^0-9]/, "", $0); print; exit}' app/build.gradle.kts)
+          if [ -z "$VERSION_CODE" ]; then
+            echo "No se pudo detectar versionCode en app/build.gradle.kts"
+            exit 1
+          fi
           echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+          echo "APP_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           echo "version=$APP_VERSION" >> "$GITHUB_OUTPUT"
       - name: Restore stable Android signing key
         run: |
@@ -55,7 +61,7 @@ jobs:
           "$BUILD_TOOLS/zipalign" -c -v 4 "$APK"
           "$BUILD_TOOLS/aapt" dump badging "$APK" | tee /tmp/apk-badging.txt
           grep -q "package: name='com.djsebas.chatdjsvip.v320'" /tmp/apk-badging.txt
-          grep -q "versionCode='57' versionName='3.8.5'" /tmp/apk-badging.txt
+          grep -q "versionCode='$APP_VERSION_CODE' versionName='$APP_VERSION'" /tmp/apk-badging.txt
           grep -q "sdkVersion:'26'" /tmp/apk-badging.txt
           echo "APK validada: firma, alineación, applicationId, versionCode, versionName y minSdk correctos."
       - name: Upload APK artifact
