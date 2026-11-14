@@ -11,6 +11,7 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import org.json.JSONArray
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -204,6 +205,7 @@ fun ChatDjsVipApp() {
 private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String, Uri?) -> Unit, searchWeb: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    var selectedMediaIsVideo by remember { mutableStateOf(false) }
     var modelInstalled by remember { mutableStateOf(OnDeviceLlmEngine.hasInstalledModel(context)) }
     var importingModel by remember { mutableStateOf(false) }
     var importError by remember { mutableStateOf<String?>(null) }
@@ -222,12 +224,14 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             }
         }
     }
-    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    // Android Photo Picker: permite elegir fotos y vídeos desde Galería o proveedores compatibles.
+    val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             runCatching {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             selectedImage = uri
+            selectedMediaIsVideo = context.contentResolver.getType(uri)?.startsWith("video/") == true
         }
     }
     val textFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -375,8 +379,8 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
         if (selectedImage != null) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
                 Icon(Icons.Default.Image, null, tint = Accent)
-                Text("Imagen adjunta", color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
-                TextButton(onClick = { selectedImage = null }) { Text("Quitar") }
+                Text(if (selectedMediaIsVideo) "Vídeo adjunto" else "Foto adjunta", color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                TextButton(onClick = { selectedImage = null; selectedMediaIsVideo = false }) { Text("Quitar") }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().background(Panel, CircleShape).padding(6.dp)) {
@@ -387,8 +391,8 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             IconButton(onClick = { textFilePicker.launch(arrayOf("text/*", "application/json", "application/xml", "application/pdf")) }) {
                 Icon(Icons.Default.AttachFile, "Adjuntar texto, código o PDF", tint = Accent)
             }
-            IconButton(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
-                Icon(Icons.Default.Image, "Adjuntar imagen", tint = Accent)
+            IconButton(onClick = { imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) }) {
+                Icon(Icons.Default.Image, "Adjuntar foto o vídeo", tint = Accent)
             }
             IconButton(onClick = { permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) }) {
                 Icon(Icons.Default.Mic, "Hablar", tint = Accent)
