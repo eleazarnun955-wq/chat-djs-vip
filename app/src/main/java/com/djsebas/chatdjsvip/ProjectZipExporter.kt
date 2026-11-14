@@ -61,6 +61,12 @@ object ProjectZipExporter {
                         addFile(safePath, fileBytes)
                     }
 
+                    // Include a ready-to-run CI workflow for complete Android Gradle projects.
+                    // Existing user workflows are preserved and never overwritten.
+                    ProjectBuildWorkflowGenerator.generate(projectFiles)?.let { workflow ->
+                        addFile(workflow.path, workflow.content.toByteArray(Charsets.UTF_8))
+                    }
+
                     if (markdown.isNotBlank()) {
                         addFile("README-GENERADO.md", markdown.toByteArray(Charsets.UTF_8))
                         val matches = fence.findAll(markdown).toList()
