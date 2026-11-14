@@ -22,8 +22,7 @@ object OnlineSearchEngine {
         val app = context.applicationContext
         executor.execute {
             val result = runCatching {
-                val encoded = URLEncoder.encode(query.trim(), "UTF-8")
-                val url = URL("https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=$encoded&format=json&utf8=1&srlimit=5")
+                val url = URL(buildSearchUrl(query))
                 val connection = (url.openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
                     connectTimeout = 10_000
@@ -62,4 +61,9 @@ object OnlineSearchEngine {
             mainHandler.post { onResult(result) }
         }
     }
+}
+
+internal fun buildSearchUrl(query: String): String {
+    val encoded = URLEncoder.encode(query.trim(), "UTF-8")
+    return "https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=$encoded&format=json&utf8=1&srlimit=5"
 }
