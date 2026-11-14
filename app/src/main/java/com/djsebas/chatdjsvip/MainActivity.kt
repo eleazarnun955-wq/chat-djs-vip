@@ -9,12 +9,15 @@ import android.media.MediaPlayer
 import android.media.PlaybackParams
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.PickVisualMediaRequest
 import org.json.JSONArray
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -31,6 +34,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -112,7 +117,7 @@ fun ChatDjsVipApp() {
                 "Chat" -> ChatScreen(messages, prompt, { prompt = it }, { text, imageUri ->
                     if (text.isNotBlank() || imageUri != null) {
                         val shownText = text.ifBlank { "Analiza esta imagen y explícame qué observas." }
-                        messages = messages + "Tú: $shownText" + "VIP: Consultando..."
+                        messages = messages + "Tú: $shownText${imageUri?.let { "\n[[CHAT_IMAGE_URI=$it]]" } ?: ""}" + "VIP: Consultando..."
                         prompt = ""
                         OnDeviceLlmEngine.reply(context, shownText, messages, imageUri) { answer ->
                             (context as? android.app.Activity)?.runOnUiThread {
@@ -356,7 +361,7 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 val user = msg.startsWith("Tú:")
                 Surface(color = if (user) Color(0xFF174C43) else Panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(msg, Modifier.weight(1f).padding(2.dp), color = Color.White, fontSize = 15.sp)
+                        ChatMessageContent(msg, Modifier.weight(1f).padding(2.dp))
                         if (msg.startsWith("VIP:")) {
                             IconButton(onClick = {
                                 val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -377,10 +382,16 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             }
         }
         if (selectedImage != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                Icon(Icons.Default.Image, null, tint = Accent)
-                Text(if (selectedMediaIsVideo) "Vídeo adjunto" else "Foto adjunta", color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
-                TextButton(onClick = { selectedImage = null; selectedMediaIsVideo = false }) { Text("Quitar") }
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    .background(Panel, RoundedCornerShape(14.dp)).padding(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if (selectedMediaIsVideo) Icons.Default.Videocam else Icons.Default.Image, null, tint = Accent)
+                    Text(if (selectedMediaIsVideo) "Vídeo adjunto" else "Vista previa de la foto", color = Accent, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                    TextButton(onClick = { selectedImage = null; selectedMediaIsVideo = false }) { Text("Quitar") }
+                }
+                if (!selectedMediaIsVideo) ChatImagePreview(selectedImage!!, Modifier.fillMaxWidth().heightIn(max = 190.dp))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().background(Panel, CircleShape).padding(6.dp)) {
@@ -420,6 +431,57 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
             },
             containerColor = Panel
         )
+    }
+}
+
+@Composable
+private fun ChatMessageContent(message: String, modifier: Modifier = Modifier) {
+    val imageUriText = remember(message) {
+        Regex("\\[\\[CHAT_IMAGE_URI=(.*?)\\]\\]").find(message)?.groupValues?.getOrNull(1)
+    }
+    val visibleText = remember(message) {
+        message.replace(Regex("\\n?\\[\\[CHAT_IMAGE_URI=.*?\\]\\]"), "").trim()
+    }
+    Column(modifier) {
+        if (visibleText.isNotBlank()) Text(visibleText, color = Color.White, fontSize = 15.sp)
+        if (!imageUriText.isNullOrBlank()) {
+            val uri = remember(imageUriText) { Uri.parse(imageUriText) }
+            val context = LocalContext.current
+            val isVideo = remember(uri) { context.contentResolver.getType(uri)?.startsWith("video/") == true }
+            if (isVideo) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                    Icon(Icons.Default.PlayCircle, null, tint = Accent)
+                    Text("Vídeo adjunto", color = Muted, modifier = Modifier.padding(start = 6.dp))
+                }
+            } else {
+                ChatImagePreview(uri, Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(max = 300.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatImagePreview(uri: Uri, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var bitmap by remember(uri) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var failed by remember(uri) { mutableStateOf(false) }
+    LaunchedEffect(uri) {
+        val decoded = withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    BitmapFactory.decodeStream(input, null, BitmapFactory.Options().apply { inSampleSize = 4 })
+                }
+            }.getOrNull()
+        }
+        bitmap = decoded
+        failed = decoded == null
+    }
+    when {
+        bitmap != null -> Image(bitmap = bitmap!!.asImageBitmap(), contentDescription = "Imagen adjunta", modifier = modifier, contentScale = ContentScale.Fit)
+        failed -> Text("No se pudo cargar esta imagen", color = Muted, modifier = modifier.padding(8.dp))
+        else -> Box(modifier, contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = Accent, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        }
     }
 }
 
