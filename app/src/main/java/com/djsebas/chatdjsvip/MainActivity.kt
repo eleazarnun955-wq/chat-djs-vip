@@ -128,7 +128,7 @@ fun ChatDjsVipApp() {
                                 else -> ""
                             }
                         }
-                        val marker = imageUri?.let { "\\n[[CHAT_MEDIA_URI=$it|${mime ?: "application/octet-stream"}]]" } ?: ""
+                        val marker = imageUri?.let { "\n[[CHAT_MEDIA_URI=$it|${mime ?: "application/octet-stream"}]]" } ?: ""
                         messages = messages + "Tú: $shownText$marker" + "VIP: Consultando..."
                         prompt = ""
                         val visionUri = if (mime?.startsWith("image/") == true) imageUri else null
