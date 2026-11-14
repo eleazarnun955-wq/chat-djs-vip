@@ -55,6 +55,7 @@ fun ChatDjsVipApp() {
     var section by remember { mutableStateOf("Chat") }
     var showClearChat by remember { mutableStateOf(false) }
     var showConversationHistory by remember { mutableStateOf(false) }
+    var showLocalMemory by remember { mutableStateOf(false) }
     var conversationArchive by remember { mutableStateOf(preferences.getString("conversation_archive_v1", "[]").orEmpty()) }
     var prompt by remember { mutableStateOf("") }
     var messages by remember {
@@ -86,6 +87,7 @@ fun ChatDjsVipApp() {
                 Icon(Icons.Default.GraphicEq, contentDescription = null, tint = Accent, modifier = Modifier.padding(start = 16.dp).size(28.dp))
             }, actions = {
                 if (section == "Chat") {
+                    IconButton(onClick = { showLocalMemory = true }) { Icon(Icons.Default.Psychology, contentDescription = "Administrar memoria privada", tint = Accent) }
                     IconButton(onClick = { showConversationHistory = true }) { Icon(Icons.Default.History, contentDescription = "Conversaciones anteriores", tint = Accent) }
                     IconButton(onClick = {
                         conversationArchive = archiveConversation(conversationArchive, messages, System.currentTimeMillis())
@@ -178,6 +180,9 @@ fun ChatDjsVipApp() {
                 confirmButton = { TextButton(onClick = { showConversationHistory = false }) { Text("Cerrar") } },
                 containerColor = Panel
             )
+        }
+        if (showLocalMemory) {
+            LocalMemoryDialog(onDismiss = { showLocalMemory = false })
         }
         if (showClearChat) {
             AlertDialog(
