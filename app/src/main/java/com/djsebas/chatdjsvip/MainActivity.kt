@@ -106,7 +106,28 @@ fun ChatDjsVipApp() {
                             }
                         }
                     }
-                }, Modifier.padding(padding))
+                }, searchWeb = { query ->
+                    val question = query.trim()
+                    if (question.isNotBlank()) {
+                        messages = messages + "Tú: Busca información actual sobre: $question" + "VIP: Consultando fuentes web..."
+                        OnlineSearchEngine.search(context, question) { result ->
+                            val sourceMessage = "VIP: Resultados web:\n$result"
+                            messages = messages.dropLast(1) + sourceMessage
+                            if (OnDeviceLlmEngine.hasInstalledModel(context)) {
+                                messages = messages + "VIP: Analizando los resultados..."
+                                OnDeviceLlmEngine.reply(
+                                    context,
+                                    "Responde en español usando estos resultados web como contexto. Distingue los datos de las posibles limitaciones y no inventes información.\n\nPregunta: $question\n\n$result",
+                                    messages
+                                ) { answer ->
+                                    (context as? android.app.Activity)?.runOnUiThread {
+                                        messages = messages.dropLast(1) + "VIP: $answer"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }, modifier = Modifier.padding(padding))
                 "Escuela DJ" -> SchoolAcademyScreen(Modifier.padding(padding), onOpenLibrary = { section = "Biblioteca" })
                 "Biblioteca" -> LibraryScreen(Modifier.padding(padding))
                 else -> AppStudioScreen(Modifier.padding(padding))
@@ -129,7 +150,7 @@ fun ChatDjsVipApp() {
 }
 
 @Composable
-private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String, Uri?) -> Unit, modifier: Modifier = Modifier) {
+private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String) -> Unit, send: (String, Uri?) -> Unit, searchWeb: (String) -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var modelInstalled by remember { mutableStateOf(OnDeviceLlmEngine.hasInstalledModel(context)) }
@@ -156,6 +177,26 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             selectedImage = uri
+        }
+    }
+    val textFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val imported = runCatching {
+                val mime = context.contentResolver.getType(uri).orEmpty()
+                require(mime.startsWith("text/") || mime in setOf("application/json", "application/xml", "text/xml")) {
+                    "Por seguridad, adjunta archivos de texto, código, JSON o XML; los PDF y binarios aún no se extraen."
+                }
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: error("No se pudo leer el archivo.")
+                require(bytes.isNotEmpty()) { "El archivo está vacío." }
+                String(bytes.take(120_000).toByteArray(), Charsets.UTF_8)
+            }
+            imported.onSuccess { content ->
+                onPrompt((prompt + "\\n\\nContenido del archivo adjunto:\\n" + content).trim())
+                android.widget.Toast.makeText(context, "Texto agregado al mensaje (máximo 120 KB).", android.widget.Toast.LENGTH_LONG).show()
+            }.onFailure { error ->
+                android.widget.Toast.makeText(context, error.message ?: "No se pudo adjuntar el archivo.", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
     var speechEngine by remember { mutableStateOf<TextToSpeech?>(null) }
@@ -244,6 +285,18 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                     }
                 }) { Text("Obtener modelo") }
                 TextButton(
+                    onClick = {
+                        val query = prompt.ifBlank {
+                            messages.asReversed().firstOrNull { it.startsWith("Tú:") }?.removePrefix("Tú:")?.trim().orEmpty()
+                        }
+                        if (query.isNotBlank()) searchWeb(query)
+                        else android.widget.Toast.makeText(context, "Escribe una pregunta para buscar.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = Accent)
+                    Text("  Buscar en web")
+                }
+                TextButton(
                     onClick = { exportChatLauncher.launch("Chat-DJs-VIP.txt") },
                     enabled = messages.isNotEmpty()
                 ) {
@@ -289,6 +342,9 @@ private fun ChatScreen(messages: List<String>, prompt: String, onPrompt: (String
                 focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                 focusedTextColor = Color.White, unfocusedTextColor = Color.White
             ))
+            IconButton(onClick = { textFilePicker.launch(arrayOf("text/*", "application/json", "application/xml")) }) {
+                Icon(Icons.Default.AttachFile, "Adjuntar texto o código", tint = Accent)
+            }
             IconButton(onClick = { imagePicker.launch(arrayOf("image/*")) }) {
                 Icon(Icons.Default.Image, "Adjuntar imagen", tint = Accent)
             }
